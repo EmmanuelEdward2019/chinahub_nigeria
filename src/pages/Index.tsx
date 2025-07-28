@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
 import { 
   Sofa, 
   Zap, 
@@ -14,7 +16,8 @@ import {
   Cpu, 
   Package,
   ArrowRight,
-  User
+  User,
+  Quote
 } from "lucide-react";
 import heroImage from "@/assets/hero-image.jpg";
 
@@ -81,28 +84,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <img src="/lovable-uploads/0bdcaaca-e82b-4c23-9eb4-934cd15493e9.png" alt="ChinaHub Logo" className="h-8 w-auto" />
-            </div>
-            <div className="flex items-center space-x-4">
-              {user ? (
-                <Button onClick={() => navigate("/dashboard")} variant="outline">
-                  <User className="h-4 w-4 mr-2" />
-                  Dashboard
-                </Button>
-              ) : (
-                <Button onClick={() => navigate("/auth")}>
-                  Sign In
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navigation user={user} />
 
       {/* Hero Section */}
       <section className="relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
@@ -126,7 +108,7 @@ const Index = () => {
               Start Sourcing Now
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate("/auth")}>
+            <Button size="lg" variant="outline" onClick={() => navigate("/about")}>
               Learn More
             </Button>
           </div>
@@ -172,6 +154,22 @@ const Index = () => {
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Parallax Quote Section */}
+      <section className="relative py-16 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="absolute inset-0 bg-primary/5"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-secondary/10"></div>
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          <Quote className="h-12 w-12 text-primary mx-auto mb-6 opacity-50" />
+          <blockquote className="text-2xl md:text-3xl font-semibold text-primary mb-6">
+            "Global trade is not about replacing domestic economic activity. 
+            It's about expanding opportunities for better productivity, innovation, and economic growth."
+          </blockquote>
+          <cite className="text-lg text-muted-foreground">
+            — Leading Cross-border Trade Expert
+          </cite>
         </div>
       </section>
 
@@ -245,14 +243,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-white border-t py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-muted-foreground">
-            © 2025 ChinaHub. All rights reserved. Your trusted product sourcing platform.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
