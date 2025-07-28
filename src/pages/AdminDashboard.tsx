@@ -20,9 +20,14 @@ import {
   XCircle, 
   Eye,
   Upload,
-  LogOut
+  LogOut,
+  Settings,
+  Bell
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ProfileSettings from "@/components/ProfileSettings";
+import PaymentPlansManager from "@/components/PaymentPlansManager";
+import UserManagement from "@/components/UserManagement";
 
 interface Inquiry {
   id: string;
@@ -57,6 +62,7 @@ const AdminDashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [stats, setStats] = useState<AdminStats>({
     totalInquiries: 0,
     pendingInquiries: 0,
@@ -70,6 +76,7 @@ const AdminDashboard = () => {
   const [adminFeedback, setAdminFeedback] = useState("");
   const [processingFeeNaira, setProcessingFeeNaira] = useState("");
   const [processingFeeDollar, setProcessingFeeDollar] = useState("");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -122,6 +129,16 @@ const AdminDashboard = () => {
 
     setInquiries((inquiriesData as any) || []);
 
+    // Fetch admin notifications
+    const { data: notificationsData } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user?.id)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    setNotifications(notificationsData || []);
+
     // Fetch stats
     const { count: totalInquiries } = await supabase
       .from('inquiries')
@@ -160,6 +177,18 @@ const AdminDashboard = () => {
       totalWalletTopups,
       revenue
     });
+  };
+
+  const markNotificationsAsRead = async () => {
+    if (notifications.length === 0) return;
+    
+    await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('user_id', user?.id)
+      .eq('read', false);
+    
+    await fetchData();
   };
 
   const handleInquiryAction = async (action: 'approve' | 'dismiss') => {
@@ -252,10 +281,46 @@ const AdminDashboard = () => {
               <img src="/lovable-uploads/0bdcaaca-e82b-4c23-9eb4-934cd15493e9.png" alt="ChinaHub Logo" className="h-8 w-auto" />
               <h1 className="text-xl font-bold text-primary">Admin Dashboard</h1>
             </div>
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
+            <div className="flex items-center space-x-4">
+              {/* Notifications */}
+              <div className="relative">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={markNotificationsAsRead}
+                  className="relative"
+                >
+                  <Bell className="h-4 w-4" />
+                  {notifications.filter(n => !n.read).length > 0 && (
+                    <div className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"></div>
+                  )}
+                </Button>
+              </div>
+              
+              {/* Settings */}
+              <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Admin Settings</DialogTitle>
+                    <DialogDescription>
+                      Manage your admin account settings
+                    </DialogDescription>
+                  </DialogHeader>
+                  {user && <ProfileSettings user={user} onUpdate={fetchData} />}
+                </DialogContent>
+              </Dialog>
+
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -307,10 +372,12 @@ const AdminDashboard = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="inquiries" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="inquiries">Inquiries</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="payments">Payment Plans</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
 
           <TabsContent value="inquiries" className="space-y-4">
@@ -470,67 +537,97 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
+            <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="payments" className="space-y-4">
+            <PaymentPlansManager />
+          </TabsContent>
+
+          <TabsContent value="notifications" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>Manage user accounts and roles</CardDescription>
+                <CardTitle>Admin Notifications</CardTitle>
+                <CardDescription>Recent system notifications and alerts</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-center py-8 text-muted-foreground">User management features coming soon...</p>
+                {notifications.length > 0 ? (
+                  <div className="space-y-3">
+                    {notifications.map((notification) => (
+                      <div 
+                        key={notification.id}
+                        className={`p-4 border rounded-lg ${!notification.read ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'}`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-sm">{notification.title}</h4>
+                            <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              {new Date(notification.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                          <Badge variant={notification.type === 'success' ? 'default' : 'secondary'}>
+                            {notification.type}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">
+                    No notifications yet
+                  </p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Analytics & Reports</CardTitle>
-                <CardDescription>View detailed analytics and generate reports</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Inquiry Statistics</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span>Total Inquiries:</span>
-                          <span className="font-semibold">{stats.totalInquiries}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Approved:</span>
-                          <span className="font-semibold text-green-600">{stats.approvedQuotes}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Pending:</span>
-                          <span className="font-semibold text-yellow-600">{stats.pendingInquiries}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Inquiry Statistics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Total Inquiries:</span>
+                      <span className="font-medium">{stats.totalInquiries}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Pending Reviews:</span>
+                      <span className="font-medium">{stats.pendingInquiries}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Approved Quotes:</span>
+                      <span className="font-medium">{stats.approvedQuotes}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Financial Overview</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span>Total Wallet Top-ups:</span>
-                          <span className="font-semibold">{stats.totalWalletTopups}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Estimated Revenue:</span>
-                          <span className="font-semibold text-green-600">₦{stats.revenue.toLocaleString()}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Financial Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Total Users:</span>
+                      <span className="font-medium">{stats.totalUsers}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Wallet Top-ups:</span>
+                      <span className="font-medium">{stats.totalWalletTopups}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Revenue:</span>
+                      <span className="font-medium">₦{stats.revenue.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </main>

@@ -5,9 +5,11 @@ import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, Package, FileText, LogOut, PlusCircle, Bell } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Wallet, Package, FileText, LogOut, PlusCircle, Bell, Settings, MessageSquare, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import WalletTopup from "@/components/WalletTopup";
+import ProfileSettings from "@/components/ProfileSettings";
 
 interface Profile {
   id: string;
@@ -26,6 +28,10 @@ interface Inquiry {
   item_name: string;
   status: string;
   created_at: string;
+  supplier_quote?: string;
+  admin_feedback?: string;
+  processing_fee_naira?: number;
+  processing_fee_dollar?: number;
 }
 
 interface Notification {
@@ -35,6 +41,7 @@ interface Notification {
   type: string;
   read: boolean;
   created_at: string;
+  inquiry_id?: string;
 }
 
 const Dashboard = () => {
@@ -46,6 +53,9 @@ const Dashboard = () => {
   const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
+  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -91,10 +101,10 @@ const Dashboard = () => {
         .eq('user_id', userId)
         .single();
 
-      // Fetch inquiries
+      // Fetch inquiries with more details
       const { data: inquiriesData } = await supabase
         .from('inquiries')
-        .select('id, item_name, status, created_at')
+        .select('id, item_name, status, created_at, supplier_quote, admin_feedback, processing_fee_naira, processing_fee_dollar')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(5);
@@ -131,6 +141,23 @@ const Dashboard = () => {
     await supabase.auth.signOut();
   };
 
+  const markNotificationsAsRead = async () => {
+    if (notifications.length === 0) return;
+    
+    await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('user_id', user?.id)
+      .eq('read', false);
+    
+    await fetchUserData(user?.id || "");
+  };
+
+  const viewQuoteDetails = (inquiry: Inquiry) => {
+    setSelectedInquiry(inquiry);
+    setIsQuoteDialogOpen(true);
+  };
+
   const formatCurrency = (amount: number, curr: "NGN" | "USD") => {
     const value = curr === "NGN" ? amount / 100 : amount / 100; // Convert from kobo/cents
     return curr === "NGN" ? `₦${value.toLocaleString()}` : `$${value.toFixed(2)}`;
@@ -164,12 +191,22 @@ const Dashboard = () => {
               <img src="/lovable-uploads/0bdcaaca-e82b-4c23-9eb4-934cd15493e9.png" alt="ChinaHub Logo" className="h-8 w-auto" />
             </div>
             <div className="flex items-center space-x-4">
-              {notifications.some(n => !n.read) && (
-                <div className="relative">
-                  <Bell className="h-5 w-5 text-muted-foreground" />
-                  <div className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"></div>
-                </div>
-              )}
+              {/* Notifications */}
+              <div className="relative">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={markNotificationsAsRead}
+                  className="relative"
+                >
+                  <Bell className="h-4 w-4" />
+                  {notifications.filter(n => !n.read).length > 0 && (
+                    <div className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"></div>
+                  )}
+                </Button>
+              </div>
+
+              {/* Currency Selector */}
               <div className="flex items-center space-x-2">
                 <label className="text-sm font-medium">Currency:</label>
                 <select
@@ -181,11 +218,33 @@ const Dashboard = () => {
                   <option value="USD">$ USD</option>
                 </select>
               </div>
+
+              {/* Settings */}
+              <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Account Settings</DialogTitle>
+                    <DialogDescription>
+                      Manage your profile and account preferences
+                    </DialogDescription>
+                  </DialogHeader>
+                  {user && <ProfileSettings user={user} onUpdate={() => fetchUserData(user.id)} />}
+                </DialogContent>
+              </Dialog>
+
+              {/* Admin Panel Link */}
               {isAdmin && (
-                <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
+                <Button variant="outline" size="sm" onClick={() => navigate("/admin_2025store")}>
                   Admin Panel
                 </Button>
               )}
+
               <Button variant="outline" size="sm" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
@@ -277,15 +336,37 @@ const Dashboard = () => {
                 <div className="space-y-3">
                   {inquiries.slice(0, 3).map((inquiry) => (
                     <div key={inquiry.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium text-sm">{inquiry.item_name}</p>
                         <p className="text-xs text-muted-foreground">
                           {new Date(inquiry.created_at).toLocaleDateString()}
                         </p>
+                        {inquiry.supplier_quote && inquiry.status === 'approved' && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="text-xs p-0 h-auto mt-1"
+                            onClick={() => viewQuoteDetails(inquiry)}
+                          >
+                            <MessageSquare className="h-3 w-3 mr-1" />
+                            View Quote
+                          </Button>
+                        )}
                       </div>
-                      <Badge className={getStatusColor(inquiry.status)}>
-                        {inquiry.status}
-                      </Badge>
+                      <div className="flex flex-col items-end space-y-1">
+                        <Badge className={getStatusColor(inquiry.status)}>
+                          {inquiry.status}
+                        </Badge>
+                        {inquiry.processing_fee_naira && inquiry.status === 'approved' && (
+                          <div className="text-xs text-muted-foreground flex items-center">
+                            <DollarSign className="h-3 w-3 mr-1" />
+                            {formatCurrency(
+                              currency === "NGN" ? inquiry.processing_fee_naira : (inquiry.processing_fee_dollar || 0),
+                              currency
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -297,6 +378,102 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Quote Details Dialog */}
+        <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Supplier Quote Details</DialogTitle>
+              <DialogDescription>
+                {selectedInquiry?.item_name} - Approved Quote
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedInquiry && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">Quote Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Supplier Quote</label>
+                        <p className="text-sm mt-1 p-2 bg-gray-50 rounded border">
+                          {selectedInquiry.supplier_quote || "No quote details provided"}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Admin Feedback</label>
+                        <p className="text-sm mt-1 p-2 bg-gray-50 rounded border">
+                          {selectedInquiry.admin_feedback || "No additional feedback"}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">Processing Fees</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Naira Fee</label>
+                        <p className="text-lg font-semibold">
+                          {selectedInquiry.processing_fee_naira 
+                            ? `₦${(selectedInquiry.processing_fee_naira / 100).toLocaleString()}`
+                            : "N/A"
+                          }
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Dollar Fee</label>
+                        <p className="text-lg font-semibold">
+                          {selectedInquiry.processing_fee_dollar 
+                            ? `$${(selectedInquiry.processing_fee_dollar / 100).toFixed(2)}`
+                            : "N/A"
+                          }
+                        </p>
+                      </div>
+
+                      <div className="pt-2">
+                        <Button 
+                          className="w-full" 
+                          disabled={!wallet || 
+                            (currency === "NGN" 
+                              ? wallet.naira_balance < (selectedInquiry.processing_fee_naira || 0)
+                              : wallet.dollar_balance < (selectedInquiry.processing_fee_dollar || 0)
+                            )
+                          }
+                        >
+                          {!wallet || 
+                            (currency === "NGN" 
+                              ? wallet.naira_balance < (selectedInquiry.processing_fee_naira || 0)
+                              : wallet.dollar_balance < (selectedInquiry.processing_fee_dollar || 0)
+                            )
+                            ? "Insufficient Balance" 
+                            : "Proceed with Sourcing"
+                          }
+                        </Button>
+                        
+                        {wallet && (
+                          <p className="text-xs text-muted-foreground text-center mt-2">
+                            Your balance: {formatCurrency(
+                              currency === "NGN" ? wallet.naira_balance : wallet.dollar_balance,
+                              currency
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
