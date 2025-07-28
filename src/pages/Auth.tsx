@@ -109,7 +109,7 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <img src="/placeholder.svg" alt="ChinaHub Logo" className="h-16 w-auto" />
+            <img src="/lovable-uploads/0bdcaaca-e82b-4c23-9eb4-934cd15493e9.png" alt="ChinaHub Logo" className="h-16 w-auto" />
           </div>
           <CardTitle className="text-2xl font-bold text-primary">Welcome to ChinaHub</CardTitle>
           <CardDescription>Your trusted product sourcing platform</CardDescription>

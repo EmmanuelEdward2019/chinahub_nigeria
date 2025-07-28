@@ -85,7 +85,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <img src="/lovable-uploads/1452eadd-6aef-4b9c-96bf-ce2be99fdfd1.png" alt="ChinaHub Logo" className="h-8 w-auto" />
+              <img src="/lovable-uploads/0bdcaaca-e82b-4c23-9eb4-934cd15493e9.png" alt="ChinaHub Logo" className="h-8 w-auto" />
               <h1 className="text-xl font-bold text-primary">ChinaHub</h1>
             </div>
             <div className="flex items-center space-x-4">
