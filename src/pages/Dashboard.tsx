@@ -131,7 +131,7 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <img src="/placeholder.svg" alt="ChinaHub Logo" className="h-8 w-auto" />
+              <img src="/lovable-uploads/1452eadd-6aef-4b9c-96bf-ce2be99fdfd1.png" alt="ChinaHub Logo" className="h-8 w-auto" />
               <h1 className="text-xl font-bold text-primary">ChinaHub Dashboard</h1>
             </div>
             <div className="flex items-center space-x-4">
@@ -219,7 +219,7 @@ const Dashboard = () => {
               <CardDescription>Get started with your next sourcing request</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button className="w-full" onClick={() => navigate("/")}>
+              <Button className="w-full" onClick={() => navigate("/inquiry")}>
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Submit New Inquiry
               </Button>
