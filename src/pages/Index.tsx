@@ -249,7 +249,7 @@ const Index = () => {
       <footer className="bg-white border-t py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-muted-foreground">
-            © 2024 ChinaHub. All rights reserved. Your trusted product sourcing platform.
+            © 2025 ChinaHub. All rights reserved. Your trusted product sourcing platform.
           </p>
         </div>
       </footer>
