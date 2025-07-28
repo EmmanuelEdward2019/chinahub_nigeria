@@ -38,6 +38,7 @@ export type Database = {
       inquiries: {
         Row: {
           admin_feedback: string | null
+          admin_notes: string | null
           category_id: string | null
           created_at: string
           description: string
@@ -46,6 +47,8 @@ export type Database = {
           processing_fee_dollar: number | null
           processing_fee_naira: number | null
           quantity: number
+          reviewed_at: string | null
+          reviewed_by: string | null
           sample_file_url: string | null
           status: string
           supplier_quote: string | null
@@ -54,6 +57,7 @@ export type Database = {
         }
         Insert: {
           admin_feedback?: string | null
+          admin_notes?: string | null
           category_id?: string | null
           created_at?: string
           description: string
@@ -62,6 +66,8 @@ export type Database = {
           processing_fee_dollar?: number | null
           processing_fee_naira?: number | null
           quantity: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           sample_file_url?: string | null
           status?: string
           supplier_quote?: string | null
@@ -70,6 +76,7 @@ export type Database = {
         }
         Update: {
           admin_feedback?: string | null
+          admin_notes?: string | null
           category_id?: string | null
           created_at?: string
           description?: string
@@ -78,6 +85,8 @@ export type Database = {
           processing_fee_dollar?: number | null
           processing_fee_naira?: number | null
           quantity?: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           sample_file_url?: string | null
           status?: string
           supplier_quote?: string | null
@@ -90,6 +99,47 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          inquiry_id: string | null
+          message: string
+          read: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inquiry_id?: string | null
+          message: string
+          read?: boolean
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inquiry_id?: string | null
+          message?: string
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_inquiry_id_fkey"
+            columns: ["inquiry_id"]
+            isOneToOne: false
+            referencedRelation: "inquiries"
             referencedColumns: ["id"]
           },
         ]
@@ -201,6 +251,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       wallets: {
         Row: {
           created_at: string
@@ -233,10 +304,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -363,6 +440,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const

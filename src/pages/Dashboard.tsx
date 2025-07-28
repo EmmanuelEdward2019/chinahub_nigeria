@@ -5,8 +5,9 @@ import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, Package, FileText, LogOut, PlusCircle } from "lucide-react";
+import { Wallet, Package, FileText, LogOut, PlusCircle, Bell } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import WalletTopup from "@/components/WalletTopup";
 
 interface Profile {
   id: string;
@@ -27,13 +28,24 @@ interface Inquiry {
   created_at: string;
 }
 
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  read: boolean;
+  created_at: string;
+}
+
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -87,9 +99,27 @@ const Dashboard = () => {
         .order('created_at', { ascending: false })
         .limit(5);
 
+      // Fetch notifications
+      const { data: notificationsData } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      // Check if user is admin
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .single();
+
       setProfile(profileData);
       setWallet(walletData);
       setInquiries(inquiriesData || []);
+      setNotifications(notificationsData || []);
+      setIsAdmin(!!roleData);
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
@@ -134,6 +164,12 @@ const Dashboard = () => {
               <img src="/lovable-uploads/0bdcaaca-e82b-4c23-9eb4-934cd15493e9.png" alt="ChinaHub Logo" className="h-8 w-auto" />
             </div>
             <div className="flex items-center space-x-4">
+              {notifications.some(n => !n.read) && (
+                <div className="relative">
+                  <Bell className="h-5 w-5 text-muted-foreground" />
+                  <div className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"></div>
+                </div>
+              )}
               <div className="flex items-center space-x-2">
                 <label className="text-sm font-medium">Currency:</label>
                 <select
@@ -145,6 +181,11 @@ const Dashboard = () => {
                   <option value="USD">$ USD</option>
                 </select>
               </div>
+              {isAdmin && (
+                <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
+                  Admin Panel
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
@@ -222,10 +263,7 @@ const Dashboard = () => {
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Submit New Inquiry
               </Button>
-              <Button variant="outline" className="w-full">
-                <Wallet className="h-4 w-4 mr-2" />
-                Top Up Wallet
-              </Button>
+              <WalletTopup userId={user?.id || ""} onSuccess={() => fetchUserData(user?.id || "")} />
             </CardContent>
           </Card>
 
