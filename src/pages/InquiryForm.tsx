@@ -185,6 +185,19 @@ const InquiryForm = () => {
                   </Select>
                 </div>
 
+                {selectedCategory && categories.find(cat => cat.id === selectedCategory)?.name === 'Others' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="otherDetails">Please specify the category *</Label>
+                    <Input
+                      id="otherDetails"
+                      value={otherCategoryDetails}
+                      onChange={(e) => setOtherCategoryDetails(e.target.value)}
+                      placeholder="e.g., Pet supplies, Art materials, Custom machinery"
+                      required
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="itemName">Product Name *</Label>
                   <Input
