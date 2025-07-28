@@ -132,7 +132,6 @@ const Dashboard = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <img src="/lovable-uploads/0bdcaaca-e82b-4c23-9eb4-934cd15493e9.png" alt="ChinaHub Logo" className="h-8 w-auto" />
-              <h1 className="text-xl font-bold text-primary">ChinaHub Dashboard</h1>
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">

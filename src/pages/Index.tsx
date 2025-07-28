@@ -16,6 +16,7 @@ import {
   ArrowRight,
   User
 } from "lucide-react";
+import heroImage from "@/assets/hero-image.jpg";
 
 interface Category {
   id: string;
@@ -86,7 +87,6 @@ const Index = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <img src="/lovable-uploads/0bdcaaca-e82b-4c23-9eb4-934cd15493e9.png" alt="ChinaHub Logo" className="h-8 w-auto" />
-              <h1 className="text-xl font-bold text-primary">ChinaHub</h1>
             </div>
             <div className="flex items-center space-x-4">
               {user ? (
@@ -105,8 +105,12 @@ const Index = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
+      <section className="relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <img src={heroImage} alt="Global Trade" className="w-full h-full object-cover opacity-10" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/80 to-background/60"></div>
+        </div>
+        <div className="max-w-7xl mx-auto text-center relative z-10">
           <h1 className="text-4xl md:text-6xl font-bold text-primary mb-6">
             Your Gateway to 
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
