@@ -47,6 +47,7 @@ export type Database = {
           description: string
           id: string
           item_name: string
+          payment_status: string | null
           processing_fee_dollar: number | null
           processing_fee_naira: number | null
           quantity: number
@@ -66,6 +67,7 @@ export type Database = {
           description: string
           id?: string
           item_name: string
+          payment_status?: string | null
           processing_fee_dollar?: number | null
           processing_fee_naira?: number | null
           quantity: number
@@ -85,6 +87,7 @@ export type Database = {
           description?: string
           id?: string
           item_name?: string
+          payment_status?: string | null
           processing_fee_dollar?: number | null
           processing_fee_naira?: number | null
           quantity?: number
@@ -102,6 +105,41 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_replies: {
+        Row: {
+          created_at: string
+          id: string
+          is_admin_reply: boolean | null
+          message: string
+          notification_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_admin_reply?: boolean | null
+          message: string
+          notification_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_admin_reply?: boolean | null
+          message?: string
+          notification_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_replies_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
             referencedColumns: ["id"]
           },
         ]
@@ -140,6 +178,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "notifications_inquiry_id_fkey"
+            columns: ["inquiry_id"]
+            isOneToOne: false
+            referencedRelation: "inquiries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          inquiry_id: string | null
+          payment_method: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          inquiry_id?: string | null
+          payment_method?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          inquiry_id?: string | null
+          payment_method?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_inquiry_id_fkey"
             columns: ["inquiry_id"]
             isOneToOne: false
             referencedRelation: "inquiries"

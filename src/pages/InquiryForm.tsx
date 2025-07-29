@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Upload, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,6 +29,9 @@ const InquiryForm = () => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [otherCategoryDetails, setOtherCategoryDetails] = useState("");
+  const [wallet, setWallet] = useState<{naira_balance: number, dollar_balance: number} | null>(null);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [inquiryFee] = useState(5000); // ₦50 inquiry fee
   
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -41,13 +45,22 @@ const InquiryForm = () => {
         return;
       }
       setUser(session.user);
+      
+      // Fetch user wallet
+      const { data: walletData } = await supabase
+        .from('wallets')
+        .select('naira_balance, dollar_balance')
+        .eq('user_id', session.user.id)
+        .single();
+      
+      setWallet(walletData);
     };
 
     const fetchCategories = async () => {
       const { data, error } = await supabase
         .from('categories')
         .select('*')
-        .order('name', { ascending: true });
+        .order('display_order', { ascending: true });
       
       if (error) {
         console.error('Error fetching categories:', error);
@@ -84,15 +97,30 @@ const InquiryForm = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
+  const processPayment = async () => {
+    if (!user || !wallet) return;
+
+    if (wallet.naira_balance < inquiryFee) {
+      toast({
+        title: "Insufficient Funds",
+        description: `You need ₦${(inquiryFee / 100).toLocaleString()} to submit an inquiry. Please fund your wallet first.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSubmitting(true);
     try {
-      let sampleFileUrl = null;
+      // Deduct payment from wallet
+      const { error: walletError } = await supabase
+        .from('wallets')
+        .update({ naira_balance: wallet.naira_balance - inquiryFee })
+        .eq('user_id', user.id);
 
-      // Upload file to storage if provided
+      if (walletError) throw walletError;
+
+      // Submit inquiry with payment status
+      let sampleFileUrl = null;
       if (sampleFile) {
         const fileExt = sampleFile.name.split('.').pop();
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
@@ -101,15 +129,11 @@ const InquiryForm = () => {
           .from('samples')
           .upload(fileName, sampleFile);
 
-        if (uploadError) {
-          throw uploadError;
-        }
-
+        if (uploadError) throw uploadError;
         sampleFileUrl = fileName;
       }
 
-      // Submit inquiry
-      const { error } = await supabase
+      const { data: inquiryData, error: inquiryError } = await supabase
         .from('inquiries')
         .insert({
           user_id: user.id,
@@ -118,26 +142,73 @@ const InquiryForm = () => {
           description,
           quantity,
           sample_file_url: sampleFileUrl,
+          payment_status: 'paid'
+        })
+        .select()
+        .single();
+
+      if (inquiryError) throw inquiryError;
+
+      // Create order record
+      await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          inquiry_id: inquiryData.id,
+          amount: inquiryFee,
+          currency: 'NGN',
+          status: 'completed',
+          payment_method: 'wallet'
         });
 
-      if (error) throw error;
+      // Create transaction record
+      await supabase
+        .from('transactions')
+        .insert({
+          user_id: user.id,
+          inquiry_id: inquiryData.id,
+          transaction_type: 'payment',
+          amount: inquiryFee,
+          currency: 'NGN',
+          status: 'completed',
+          reference: `INQ-${inquiryData.id.substring(0, 8)}`
+        });
 
       toast({
         title: "Inquiry submitted successfully!",
-        description: "We'll review your request and get back to you soon.",
+        description: "Payment processed. We'll review your request and get back to you soon.",
       });
 
       navigate("/dashboard");
     } catch (error) {
-      console.error('Error submitting inquiry:', error);
+      console.error('Error processing payment:', error);
       toast({
-        title: "Error submitting inquiry",
+        title: "Error processing payment",
         description: "Please try again later",
         variant: "destructive",
       });
     } finally {
       setSubmitting(false);
+      setShowPaymentDialog(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !wallet) return;
+
+    // Check if user has sufficient funds
+    if (wallet.naira_balance < inquiryFee) {
+      toast({
+        title: "Insufficient Funds",
+        description: `You need ₦${(inquiryFee / 100).toLocaleString()} to submit an inquiry. Please fund your wallet first.`,
+        variant: "destructive",
+      });
+      navigate("/dashboard");
+      return;
+    }
+
+    setShowPaymentDialog(true);
   };
 
   return (
@@ -277,9 +348,46 @@ const InquiryForm = () => {
                   disabled={submitting || !itemName || !description}
                   className="min-w-32"
                 >
-                  {submitting ? "Submitting..." : "Submit Inquiry"}
+                  {submitting ? "Processing..." : `Pay ₦${(inquiryFee / 100).toLocaleString()} & Submit`}
                 </Button>
               </div>
+
+              {/* Payment Confirmation Dialog */}
+              <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Confirm Payment</DialogTitle>
+                    <DialogDescription>
+                      You are about to pay ₦{(inquiryFee / 100).toLocaleString()} to submit your inquiry for "{itemName}"
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-muted rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span>Current Wallet Balance:</span>
+                        <span className="font-semibold">₦{wallet ? (wallet.naira_balance / 100).toLocaleString() : '0'}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span>Inquiry Fee:</span>
+                        <span className="font-semibold">₦{(inquiryFee / 100).toLocaleString()}</span>
+                      </div>
+                      <hr className="my-2" />
+                      <div className="flex justify-between items-center">
+                        <span>Balance After Payment:</span>
+                        <span className="font-semibold">₦{wallet ? ((wallet.naira_balance - inquiryFee) / 100).toLocaleString() : '0'}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={processPayment} disabled={submitting}>
+                        {submitting ? "Processing..." : "Confirm Payment"}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </form>
           </CardContent>
         </Card>

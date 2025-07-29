@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import ProfileSettings from "@/components/ProfileSettings";
 import PaymentPlansManager from "@/components/PaymentPlansManager";
 import UserManagement from "@/components/UserManagement";
+import NotificationSystem from "@/components/NotificationSystem";
 
 interface Inquiry {
   id: string;
@@ -118,65 +119,79 @@ const AdminDashboard = () => {
   }, [navigate, toast]);
 
   const fetchData = async () => {
-    // Fetch inquiries with user profiles
-    const { data: inquiriesData } = await supabase
-      .from('inquiries')
-      .select(`
-        *,
-        profiles!inner(full_name)
-      `)
-      .order('created_at', { ascending: false });
+    try {
+      // Fetch all data in parallel for better performance
+      const [
+        inquiriesResponse,
+        notificationsResponse,
+        totalInquiriesResponse,
+        pendingInquiriesResponse,
+        approvedQuotesResponse,
+        totalUsersResponse,
+        walletDataResponse
+      ] = await Promise.all([
+        // Fetch inquiries with user profiles
+        supabase
+          .from('inquiries')
+          .select(`
+            *,
+            profiles!inner(full_name)
+          `)
+          .order('created_at', { ascending: false }),
+        
+        // Fetch admin notifications
+        supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', user?.id)
+          .order('created_at', { ascending: false })
+          .limit(10),
+        
+        // Fetch stats in parallel
+        supabase
+          .from('inquiries')
+          .select('*', { count: 'exact', head: true }),
+        
+        supabase
+          .from('inquiries')
+          .select('*', { count: 'exact', head: true })
+          .in('status', ['pending', 'reviewed']),
+        
+        supabase
+          .from('inquiries')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'approved'),
+        
+        supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true }),
+        
+        supabase
+          .from('transactions')
+          .select('amount, currency')
+          .eq('transaction_type', 'topup')
+          .eq('status', 'completed')
+      ]);
 
-    setInquiries((inquiriesData as any) || []);
+      setInquiries((inquiriesResponse.data as any) || []);
+      setNotifications(notificationsResponse.data || []);
 
-    // Fetch admin notifications
-    const { data: notificationsData } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', user?.id)
-      .order('created_at', { ascending: false })
-      .limit(10);
+      const totalWalletTopups = walletDataResponse.data?.length || 0;
+      const revenue = walletDataResponse.data?.reduce((sum, transaction) => 
+        sum + (transaction.currency === 'NGN' ? transaction.amount / 100 : transaction.amount / 100 * 500), 0
+      ) || 0;
 
-    setNotifications(notificationsData || []);
-
-    // Fetch stats
-    const { count: totalInquiries } = await supabase
-      .from('inquiries')
-      .select('*', { count: 'exact', head: true });
-
-    const { count: pendingInquiries } = await supabase
-      .from('inquiries')
-      .select('*', { count: 'exact', head: true })
-      .in('status', ['pending', 'reviewed']);
-
-    const { count: approvedQuotes } = await supabase
-      .from('inquiries')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'approved');
-
-    const { count: totalUsers } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true });
-
-    const { data: walletData } = await supabase
-      .from('transactions')
-      .select('amount, currency')
-      .eq('transaction_type', 'topup')
-      .eq('status', 'completed');
-
-    const totalWalletTopups = walletData?.length || 0;
-    const revenue = walletData?.reduce((sum, transaction) => 
-      sum + (transaction.currency === 'NGN' ? transaction.amount / 100 : transaction.amount / 100 * 500), 0
-    ) || 0;
-
-    setStats({
-      totalInquiries: totalInquiries || 0,
-      pendingInquiries: pendingInquiries || 0,
-      approvedQuotes: approvedQuotes || 0,
-      totalUsers: totalUsers || 0,
-      totalWalletTopups,
-      revenue
-    });
+      setStats({
+        totalInquiries: totalInquiriesResponse.count || 0,
+        pendingInquiries: pendingInquiriesResponse.count || 0,
+        approvedQuotes: approvedQuotesResponse.count || 0,
+        totalUsers: totalUsersResponse.count || 0,
+        totalWalletTopups,
+        revenue
+      });
+    } catch (error) {
+      console.error('Error fetching admin data:', error);
+    }
   };
 
   const markNotificationsAsRead = async () => {
@@ -545,41 +560,7 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="notifications" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Admin Notifications</CardTitle>
-                <CardDescription>Recent system notifications and alerts</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {notifications.length > 0 ? (
-                  <div className="space-y-3">
-                    {notifications.map((notification) => (
-                      <div 
-                        key={notification.id}
-                        className={`p-4 border rounded-lg ${!notification.read ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'}`}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-sm">{notification.title}</h4>
-                            <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
-                            <p className="text-xs text-muted-foreground mt-2">
-                              {new Date(notification.created_at).toLocaleString()}
-                            </p>
-                          </div>
-                          <Badge variant={notification.type === 'success' ? 'default' : 'secondary'}>
-                            {notification.type}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center text-muted-foreground py-8">
-                    No notifications yet
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+            <NotificationSystem isAdmin={true} currentUserId={user?.id || ""} />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-4">
