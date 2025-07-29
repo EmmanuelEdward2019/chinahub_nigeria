@@ -59,7 +59,7 @@ const Index = () => {
       const { data } = await supabase
         .from('categories')
         .select('*')
-        .order('name');
+        .order('display_order', { ascending: true });
       
       setCategories(data || []);
     } catch (error) {
