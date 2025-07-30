@@ -135,7 +135,7 @@ const AdminDashboard = () => {
           .from('inquiries')
           .select(`
             *,
-            profiles!inner(full_name)
+            profiles!inner(full_name, phone, country)
           `)
           .order('created_at', { ascending: false }),
         

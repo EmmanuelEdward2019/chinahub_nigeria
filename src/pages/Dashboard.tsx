@@ -337,21 +337,26 @@ const Dashboard = () => {
                   {inquiries.slice(0, 3).map((inquiry) => (
                     <div key={inquiry.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex-1">
-                        <p className="font-medium text-sm">{inquiry.item_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(inquiry.created_at).toLocaleDateString()}
-                        </p>
-                        {inquiry.supplier_quote && inquiry.status === 'approved' && (
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="text-xs p-0 h-auto mt-1"
-                            onClick={() => viewQuoteDetails(inquiry)}
-                          >
-                            <MessageSquare className="h-3 w-3 mr-1" />
-                            View Quote
-                          </Button>
-                        )}
+                         <p className="font-medium text-sm">{inquiry.item_name}</p>
+                         <p className="text-xs text-muted-foreground">
+                           {new Date(inquiry.created_at).toLocaleDateString()}
+                         </p>
+                         {inquiry.status === 'pending' && (
+                           <p className="text-xs text-blue-600 font-medium mt-1">
+                             Payment confirmed - Awaiting admin review (3-5 days)
+                           </p>
+                         )}
+                         {inquiry.supplier_quote && inquiry.status === 'approved' && (
+                           <Button
+                             variant="link"
+                             size="sm"
+                             className="text-xs p-0 h-auto mt-1"
+                             onClick={() => viewQuoteDetails(inquiry)}
+                           >
+                             <MessageSquare className="h-3 w-3 mr-1" />
+                             View Quote
+                           </Button>
+                         )}
                       </div>
                       <div className="flex flex-col items-end space-y-1">
                         <Badge className={getStatusColor(inquiry.status)}>

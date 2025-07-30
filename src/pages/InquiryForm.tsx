@@ -18,6 +18,11 @@ interface Category {
   icon: string;
 }
 
+interface InquirySettings {
+  default_fee_naira: number;
+  default_fee_dollar: number;
+}
+
 const InquiryForm = () => {
   const [user, setUser] = useState<User | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -25,13 +30,14 @@ const InquiryForm = () => {
   const [itemName, setItemName] = useState("");
   const [description, setDescription] = useState("");
   const [quantity, setQuantity] = useState<number>(1);
-  const [sampleFile, setSampleFile] = useState<File | null>(null);
+  const [sampleFiles, setSampleFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [otherCategoryDetails, setOtherCategoryDetails] = useState("");
   const [wallet, setWallet] = useState<{naira_balance: number, dollar_balance: number} | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [inquiryFee] = useState(5000); // ₦50 inquiry fee
+  const [inquirySettings, setInquirySettings] = useState<InquirySettings | null>(null);
+  const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
   
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -78,32 +84,68 @@ const InquiryForm = () => {
       }
     };
 
+    const fetchInquirySettings = async () => {
+      const { data, error } = await supabase
+        .from('inquiry_settings')
+        .select('default_fee_naira, default_fee_dollar')
+        .single();
+      
+      if (error) {
+        console.error('Error fetching inquiry settings:', error);
+        // Fallback to default values
+        setInquirySettings({ default_fee_naira: 100000, default_fee_dollar: 200 });
+      } else {
+        setInquirySettings(data);
+      }
+    };
+
     checkUser();
     fetchCategories();
+    fetchInquirySettings();
   }, [navigate, searchParams]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
+    const files = Array.from(event.target.files || []);
+    
+    // Check each file size
+    for (const file of files) {
       if (file.size > 10 * 1024 * 1024) { // 10MB limit
         toast({
           title: "File too large",
-          description: "Please upload a file smaller than 10MB",
+          description: `File "${file.name}" is too large. Please upload files smaller than 10MB`,
           variant: "destructive",
         });
         return;
       }
-      setSampleFile(file);
     }
+
+    // Check total number of files
+    if (sampleFiles.length + files.length > 5) {
+      toast({
+        title: "Too many files",
+        description: "You can upload a maximum of 5 files",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSampleFiles(prev => [...prev, ...files]);
+  };
+
+  const removeFile = (index: number) => {
+    setSampleFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const processPayment = async () => {
-    if (!user || !wallet) return;
+    if (!user || !wallet || !inquirySettings) return;
 
-    if (wallet.naira_balance < inquiryFee) {
+    const inquiryFee = currency === "NGN" ? inquirySettings.default_fee_naira : inquirySettings.default_fee_dollar;
+    const currentBalance = currency === "NGN" ? wallet.naira_balance : wallet.dollar_balance;
+
+    if (currentBalance < inquiryFee) {
       toast({
         title: "Insufficient Funds",
-        description: `You need ₦${(inquiryFee / 100).toLocaleString()} to submit an inquiry. Please fund your wallet first.`,
+        description: `You need ${currency === "NGN" ? "₦" : "$"}${(inquiryFee / 100).toLocaleString()} to submit an inquiry. Please fund your wallet first.`,
         variant: "destructive",
       });
       return;
@@ -112,25 +154,34 @@ const InquiryForm = () => {
     setSubmitting(true);
     try {
       // Deduct payment from wallet
+      const walletUpdate = currency === "NGN" 
+        ? { naira_balance: wallet.naira_balance - inquiryFee }
+        : { dollar_balance: wallet.dollar_balance - inquiryFee };
+
       const { error: walletError } = await supabase
         .from('wallets')
-        .update({ naira_balance: wallet.naira_balance - inquiryFee })
+        .update(walletUpdate)
         .eq('user_id', user.id);
 
       if (walletError) throw walletError;
 
-      // Submit inquiry with payment status
-      let sampleFileUrl = null;
-      if (sampleFile) {
-        const fileExt = sampleFile.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      // Upload multiple files
+      const uploadedFiles = [];
+      for (let i = 0; i < sampleFiles.length; i++) {
+        const file = sampleFiles[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}_${i}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
           .from('samples')
-          .upload(fileName, sampleFile);
+          .upload(fileName, file);
 
         if (uploadError) throw uploadError;
-        sampleFileUrl = fileName;
+        uploadedFiles.push({
+          name: file.name,
+          url: fileName,
+          size: file.size
+        });
       }
 
       const { data: inquiryData, error: inquiryError } = await supabase
@@ -141,7 +192,7 @@ const InquiryForm = () => {
           item_name: itemName,
           description,
           quantity,
-          sample_file_url: sampleFileUrl,
+          sample_files: uploadedFiles,
           payment_status: 'paid'
         })
         .select()
@@ -156,7 +207,7 @@ const InquiryForm = () => {
           user_id: user.id,
           inquiry_id: inquiryData.id,
           amount: inquiryFee,
-          currency: 'NGN',
+          currency: currency,
           status: 'completed',
           payment_method: 'wallet'
         });
@@ -169,14 +220,14 @@ const InquiryForm = () => {
           inquiry_id: inquiryData.id,
           transaction_type: 'payment',
           amount: inquiryFee,
-          currency: 'NGN',
+          currency: currency,
           status: 'completed',
           reference: `INQ-${inquiryData.id.substring(0, 8)}`
         });
 
       toast({
         title: "Inquiry submitted successfully!",
-        description: "Payment processed. We'll review your request and get back to you soon.",
+        description: "Payment processed. We'll review your request and get back to you within 3-5 business days.",
       });
 
       navigate("/dashboard");
@@ -195,13 +246,16 @@ const InquiryForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !wallet) return;
+    if (!user || !wallet || !inquirySettings) return;
+
+    const inquiryFee = currency === "NGN" ? inquirySettings.default_fee_naira : inquirySettings.default_fee_dollar;
+    const currentBalance = currency === "NGN" ? wallet.naira_balance : wallet.dollar_balance;
 
     // Check if user has sufficient funds
-    if (wallet.naira_balance < inquiryFee) {
+    if (currentBalance < inquiryFee) {
       toast({
         title: "Insufficient Funds",
-        description: `You need ₦${(inquiryFee / 100).toLocaleString()} to submit an inquiry. Please fund your wallet first.`,
+        description: `You need ${currency === "NGN" ? "₦" : "$"}${(inquiryFee / 100).toLocaleString()} to submit an inquiry. Please fund your wallet first.`,
         variant: "destructive",
       });
       navigate("/dashboard");
@@ -220,10 +274,24 @@ const InquiryForm = () => {
             <div className="flex items-center space-x-4">
               <img src="/lovable-uploads/0bdcaaca-e82b-4c23-9eb4-934cd15493e9.png" alt="ChinaHub Logo" className="h-8 w-auto" />
             </div>
-            <Button variant="outline" onClick={() => navigate("/dashboard")}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Button>
+            <div className="flex items-center space-x-4">
+              {/* Currency Selector */}
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium">Currency:</label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value as "NGN" | "USD")}
+                  className="border rounded px-2 py-1 text-sm"
+                >
+                  <option value="NGN">₦ NGN</option>
+                  <option value="USD">$ USD</option>
+                </select>
+              </div>
+              <Button variant="outline" onClick={() => navigate("/dashboard")}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -306,7 +374,7 @@ const InquiryForm = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="sampleFile">Sample Image/Document</Label>
+                <Label htmlFor="sampleFiles">Sample Images/Documents (Max 5 files)</Label>
                 <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
                   <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <div className="space-y-2">
@@ -317,7 +385,7 @@ const InquiryForm = () => {
                       <span className="text-muted-foreground"> or drag and drop</span>
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      JPG, PNG, PDF up to 10MB
+                      JPG, PNG, PDF up to 10MB each (Max 5 files)
                     </p>
                   </div>
                   <Input
@@ -326,11 +394,26 @@ const InquiryForm = () => {
                     accept=".jpg,.jpeg,.png,.pdf"
                     onChange={handleFileUpload}
                     className="hidden"
+                    multiple
                   />
-                  {sampleFile && (
-                    <p className="mt-2 text-sm text-primary">
-                      Selected: {sampleFile.name}
-                    </p>
+                  {sampleFiles.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-sm font-medium">Selected files:</p>
+                      {sampleFiles.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                          <span className="text-sm text-primary">{file.name}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFile(index)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
@@ -345,10 +428,10 @@ const InquiryForm = () => {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={submitting || !itemName || !description}
+                  disabled={submitting || !itemName || !description || !inquirySettings}
                   className="min-w-32"
                 >
-                  {submitting ? "Processing..." : `Pay ₦${(inquiryFee / 100).toLocaleString()} & Submit`}
+                  {submitting ? "Processing..." : `Pay ${currency === "NGN" ? "₦" : "$"}${inquirySettings ? (inquirySettings[currency === "NGN" ? "default_fee_naira" : "default_fee_dollar"] / 100).toLocaleString() : "0"} & Submit`}
                 </Button>
               </div>
 
@@ -358,24 +441,30 @@ const InquiryForm = () => {
                   <DialogHeader>
                     <DialogTitle>Confirm Payment</DialogTitle>
                     <DialogDescription>
-                      You are about to pay ₦{(inquiryFee / 100).toLocaleString()} to submit your inquiry for "{itemName}"
+                      You are about to pay {currency === "NGN" ? "₦" : "$"}{inquirySettings ? (inquirySettings[currency === "NGN" ? "default_fee_naira" : "default_fee_dollar"] / 100).toLocaleString() : "0"} to submit your inquiry for "{itemName}"
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div className="p-4 bg-muted rounded-lg">
                       <div className="flex justify-between items-center">
                         <span>Current Wallet Balance:</span>
-                        <span className="font-semibold">₦{wallet ? (wallet.naira_balance / 100).toLocaleString() : '0'}</span>
+                        <span className="font-semibold">{currency === "NGN" ? "₦" : "$"}{wallet ? ((currency === "NGN" ? wallet.naira_balance : wallet.dollar_balance) / 100).toLocaleString() : '0'}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span>Inquiry Fee:</span>
-                        <span className="font-semibold">₦{(inquiryFee / 100).toLocaleString()}</span>
+                        <span className="font-semibold">{currency === "NGN" ? "₦" : "$"}{inquirySettings ? (inquirySettings[currency === "NGN" ? "default_fee_naira" : "default_fee_dollar"] / 100).toLocaleString() : "0"}</span>
                       </div>
                       <hr className="my-2" />
                       <div className="flex justify-between items-center">
                         <span>Balance After Payment:</span>
-                        <span className="font-semibold">₦{wallet ? ((wallet.naira_balance - inquiryFee) / 100).toLocaleString() : '0'}</span>
+                        <span className="font-semibold">{currency === "NGN" ? "₦" : "$"}{wallet && inquirySettings ? (((currency === "NGN" ? wallet.naira_balance : wallet.dollar_balance) - inquirySettings[currency === "NGN" ? "default_fee_naira" : "default_fee_dollar"]) / 100).toLocaleString() : '0'}</span>
                       </div>
+                    </div>
+                    
+                    <div className="p-4 bg-blue-50 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        <strong>Processing Timeline:</strong> After payment, your inquiry will be reviewed and you'll receive feedback within 3-5 business days.
+                      </p>
                     </div>
                     <div className="flex justify-end space-x-2">
                       <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>

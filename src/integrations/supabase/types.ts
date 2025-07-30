@@ -54,6 +54,7 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           sample_file_url: string | null
+          sample_files: Json | null
           status: string
           supplier_quote: string | null
           updated_at: string
@@ -74,6 +75,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           sample_file_url?: string | null
+          sample_files?: Json | null
           status?: string
           supplier_quote?: string | null
           updated_at?: string
@@ -94,6 +96,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           sample_file_url?: string | null
+          sample_files?: Json | null
           status?: string
           supplier_quote?: string | null
           updated_at?: string
@@ -108,6 +111,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      inquiry_settings: {
+        Row: {
+          created_at: string
+          default_fee_dollar: number
+          default_fee_naira: number
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          default_fee_dollar?: number
+          default_fee_naira?: number
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          default_fee_dollar?: number
+          default_fee_naira?: number
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       notification_replies: {
         Row: {
