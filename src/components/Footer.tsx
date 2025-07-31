@@ -61,17 +61,7 @@ const Footer = () => {
           <p className="text-muted-foreground text-sm">
             © 2025 ChinaHub. All rights reserved. Your trusted product sourcing platform.
           </p>
-          <p className="text-muted-foreground text-sm mt-4 md:mt-0">
-            Designed by{" "}
-            <a 
-              href="https://techfieldsdigital.com.ng" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              Techfields
-            </a>
-          </p>
+          
         </div>
       </div>
     </footer>
