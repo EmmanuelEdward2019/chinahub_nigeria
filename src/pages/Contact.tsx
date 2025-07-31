@@ -145,8 +145,8 @@ const Contact = () => {
                   <p className="text-muted-foreground mb-2">
                     For general inquiries and support
                   </p>
-                  <p className="font-semibold">info@chinahub.com</p>
-                  <p className="font-semibold">support@chinahub.com</p>
+                  <p className="font-semibold">info@chinahub.ng</p>
+                  <p className="font-semibold">support@chinahub.ng</p>
                 </CardContent>
               </Card>
 
@@ -161,8 +161,8 @@ const Contact = () => {
                   <p className="text-muted-foreground mb-2">
                     Speak with our customer service team
                   </p>
-                  <p className="font-semibold">+1 (555) 123-4567</p>
-                  <p className="font-semibold">+86 400-123-4567</p>
+                  <p className="font-semibold">+86 19589456744 </p>
+                  <p className="font-semibold">+234 8133628713</p>
                 </CardContent>
               </Card>
 
