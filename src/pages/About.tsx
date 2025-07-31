@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Globe, Shield, Users, Zap } from "lucide-react";
+import warehouseWorker from "@/assets/warehouse-worker.jpg";
 
 const About = () => {
   const [user, setUser] = useState(null);
@@ -45,11 +46,14 @@ const About = () => {
                 and efficient for businesses of all sizes. Our mission is to bridge the gap 
                 between buyers and suppliers worldwide, creating opportunities for growth and success.
               </p>
-              <p className="text-lg text-muted-foreground">
+              <p className="text-lg text-muted-foreground mb-6">
                 We leverage cutting-edge technology to simplify the sourcing process, 
                 reduce barriers to entry, and foster meaningful business relationships 
                 across borders.
               </p>
+              <div className="mt-8">
+                <img src={warehouseWorker} alt="Professional warehouse worker" className="w-full rounded-lg shadow-lg" />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-6">
               <Card>

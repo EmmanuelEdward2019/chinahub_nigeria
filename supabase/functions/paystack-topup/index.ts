@@ -49,6 +49,14 @@ serve(async (req) => {
 
     // Convert amount to kobo (Paystack uses kobo for NGN)
     const amountInKobo = Math.round(amount * 100);
+    
+    console.log('Processing payment request:', {
+      amount,
+      amountInKobo,
+      currency,
+      user_id,
+      email: user.email
+    });
 
     // Create transaction record
     const { data: transaction, error: transactionError } = await supabase

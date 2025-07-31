@@ -17,9 +17,15 @@ import {
   Package,
   ArrowRight,
   User,
-  Quote
+  Quote,
+  UserCheck,
+  FileText,
+  MessageSquare,
+  CheckCircle
 } from "lucide-react";
 import heroImage from "@/assets/hero-image.jpg";
+import globalShipping from "@/assets/global-shipping.jpg";
+import warehouseWorker from "@/assets/warehouse-worker.jpg";
 
 interface Category {
   id: string;
@@ -154,6 +160,84 @@ const Index = () => {
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* How it Works Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-secondary/5">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-primary mb-4">How It Works</h2>
+            <p className="text-lg text-muted-foreground">
+              Simple steps to get your products sourced from trusted suppliers
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="relative mb-6">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <UserCheck className="h-8 w-8 text-primary" />
+                </div>
+                <Badge variant="secondary" className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">
+                  1
+                </Badge>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Sign Up</h3>
+              <p className="text-muted-foreground text-sm">
+                Create your free account and complete your profile to get started with sourcing.
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="relative mb-6">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FileText className="h-8 w-8 text-primary" />
+                </div>
+                <Badge variant="secondary" className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">
+                  2
+                </Badge>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Submit Inquiry</h3>
+              <p className="text-muted-foreground text-sm">
+                Fill out our detailed inquiry form with product specifications and upload sample images.
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="relative mb-6">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MessageSquare className="h-8 w-8 text-primary" />
+                </div>
+                <Badge variant="secondary" className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">
+                  3
+                </Badge>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Get Expert Feedback</h3>
+              <p className="text-muted-foreground text-sm">
+                Our admin team reviews your inquiry and provides feedback within 3-5 business days.
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="relative mb-6">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="h-8 w-8 text-primary" />
+                </div>
+                <Badge variant="secondary" className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">
+                  4
+                </Badge>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Receive Quotes</h3>
+              <p className="text-muted-foreground text-sm">
+                Get detailed supplier quotes, pricing, and shipping information for your products.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-12 text-center">
+            <img src={globalShipping} alt="Global Shipping Network" className="w-full max-w-4xl mx-auto rounded-lg shadow-lg" />
+          </div>
         </div>
       </section>
 
