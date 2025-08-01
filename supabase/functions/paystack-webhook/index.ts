@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { HmacSha512 } from "https://deno.land/std@0.168.0/crypto/hmac.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,10 +26,21 @@ serve(async (req) => {
       throw new Error('No signature header found');
     }
 
-    // Verify webhook signature
-    const hmac = new HmacSha512(paystackSecretKey);
-    hmac.update(body);
-    const expectedSignature = Array.from(hmac.digest())
+    // Verify webhook signature using Web Crypto API
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(paystackSecretKey);
+    const bodyData = encoder.encode(body);
+    
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-512' },
+      false,
+      ['sign']
+    );
+    
+    const signature_buffer = await crypto.subtle.sign('HMAC', cryptoKey, bodyData);
+    const expectedSignature = Array.from(new Uint8Array(signature_buffer))
       .map(byte => byte.toString(16).padStart(2, '0'))
       .join('');
 
