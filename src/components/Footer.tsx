@@ -44,13 +44,19 @@ const Footer = () => {
             <h3 className="font-semibold text-foreground mb-4">Services</h3>
             <ul className="space-y-2">
               <li>
-                <span className="text-muted-foreground">Product Sourcing</span>
+                <Link to="/services/product-sourcing" className="text-muted-foreground hover:text-primary transition-colors">
+                  Product Sourcing
+                </Link>
               </li>
               <li>
-                <span className="text-muted-foreground">Custom Inquiries</span>
+                <Link to="/services/custom-inquiries" className="text-muted-foreground hover:text-primary transition-colors">
+                  Custom Inquiries
+                </Link>
               </li>
               <li>
-                <span className="text-muted-foreground">Supplier Matching</span>
+                <Link to="/services/supplier-matching" className="text-muted-foreground hover:text-primary transition-colors">
+                  Supplier Matching
+                </Link>
               </li>
             </ul>
           </div>

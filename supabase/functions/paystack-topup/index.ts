@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-console.log("Paystack topup function loaded")
+console.log("Paystack topup function starting...")
 
 serve(async (req) => {
   console.log(`Request method: ${req.method}`)

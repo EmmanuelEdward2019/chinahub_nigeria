@@ -274,6 +274,7 @@ const AdminDashboard = () => {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    navigate('/');
   };
 
   if (loading) {
@@ -387,12 +388,12 @@ const AdminDashboard = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="inquiries" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="inquiries">Inquiries</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="payments">Payment Plans</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1">
+            <TabsTrigger value="inquiries" className="text-xs md:text-sm">Inquiries</TabsTrigger>
+            <TabsTrigger value="users" className="text-xs md:text-sm">Users</TabsTrigger>
+            <TabsTrigger value="payments" className="text-xs md:text-sm">Payment Plans</TabsTrigger>
+            <TabsTrigger value="analytics" className="text-xs md:text-sm">Analytics</TabsTrigger>
+            <TabsTrigger value="notifications" className="text-xs md:text-sm">Notifications</TabsTrigger>
           </TabsList>
 
           <TabsContent value="inquiries" className="space-y-4">

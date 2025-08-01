@@ -1,8 +1,14 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { User, Menu, X } from "lucide-react";
+import { User, Menu, X, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NavigationProps {
   user: any;
@@ -30,6 +36,22 @@ const Navigation = ({ user }: NavigationProps) => {
               <Link to="/about" className="text-muted-foreground hover:text-primary transition-colors">
                 About Us
               </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center text-muted-foreground hover:text-primary transition-colors">
+                  Services <ChevronDown className="ml-1 h-4 w-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem asChild>
+                    <Link to="/services/product-sourcing">Product Sourcing</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/services/custom-inquiries">Custom Inquiries</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/services/supplier-matching">Supplier Matching</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Link to="/news" className="text-muted-foreground hover:text-primary transition-colors">
                 News
               </Link>
@@ -73,6 +95,32 @@ const Navigation = ({ user }: NavigationProps) => {
               >
                 About Us
               </Link>
+              <div className="space-y-2">
+                <div className="font-medium text-foreground">Services</div>
+                <div className="pl-4 space-y-2">
+                  <Link 
+                    to="/services/product-sourcing"
+                    className="block text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Product Sourcing
+                  </Link>
+                  <Link 
+                    to="/services/custom-inquiries"
+                    className="block text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Custom Inquiries
+                  </Link>
+                  <Link 
+                    to="/services/supplier-matching"
+                    className="block text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Supplier Matching
+                  </Link>
+                </div>
+              </div>
               <Link 
                 to="/news" 
                 className="text-muted-foreground hover:text-primary transition-colors"
