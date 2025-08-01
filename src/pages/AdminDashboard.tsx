@@ -25,6 +25,7 @@ import {
   Bell
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import ProfileSettings from "@/components/ProfileSettings";
 import PaymentPlansManager from "@/components/PaymentPlansManager";
 import UserManagement from "@/components/UserManagement";
@@ -81,6 +82,7 @@ const AdminDashboard = () => {
   
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const checkAdminAccess = async () => {
@@ -291,20 +293,22 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <img src="/lovable-uploads/0bdcaaca-e82b-4c23-9eb4-934cd15493e9.png" alt="ChinaHub Logo" className="h-8 w-auto" />
-              <h1 className="text-xl font-bold text-primary">Admin Dashboard</h1>
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <img src="/lovable-uploads/0bdcaaca-e82b-4c23-9eb4-934cd15493e9.png" alt="ChinaHub Logo" className="h-6 sm:h-8 w-auto" />
+              <h1 className={`font-bold text-primary ${isMobile ? 'text-sm' : 'text-xl'}`}>
+                {isMobile ? 'Admin' : 'Admin Dashboard'}
+              </h1>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-1 sm:space-x-4">
               {/* Notifications */}
               <div className="relative">
                 <Button 
                   variant="outline" 
-                  size="sm" 
+                  size={isMobile ? "sm" : "sm"}
                   onClick={markNotificationsAsRead}
-                  className="relative"
+                  className="relative p-2"
                 >
                   <Bell className="h-4 w-4" />
                   {notifications.filter(n => !n.read).length > 0 && (
@@ -316,12 +320,12 @@ const AdminDashboard = () => {
               {/* Settings */}
               <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
+                  <Button variant="outline" size="sm" className={isMobile ? "p-2" : ""}>
+                    <Settings className="h-4 w-4" />
+                    {!isMobile && <span className="ml-2">Settings</span>}
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl mx-2">
                   <DialogHeader>
                     <DialogTitle>Admin Settings</DialogTitle>
                     <DialogDescription>
@@ -332,9 +336,9 @@ const AdminDashboard = () => {
                 </DialogContent>
               </Dialog>
 
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+              <Button variant="outline" size="sm" onClick={handleSignOut} className={isMobile ? "p-2" : ""}>
+                <LogOut className="h-4 w-4" />
+                {!isMobile && <span className="ml-2">Sign Out</span>}
               </Button>
             </div>
           </div>
@@ -388,12 +392,37 @@ const AdminDashboard = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="inquiries" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1">
-            <TabsTrigger value="inquiries" className="text-xs md:text-sm">Inquiries</TabsTrigger>
-            <TabsTrigger value="users" className="text-xs md:text-sm">Users</TabsTrigger>
-            <TabsTrigger value="payments" className="text-xs md:text-sm">Payment Plans</TabsTrigger>
-            <TabsTrigger value="analytics" className="text-xs md:text-sm">Analytics</TabsTrigger>
-            <TabsTrigger value="notifications" className="text-xs md:text-sm">Notifications</TabsTrigger>
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3 gap-1 h-auto py-1' : 'grid-cols-5 gap-1'}`}>
+            <TabsTrigger 
+              value="inquiries" 
+              className={`${isMobile ? 'text-xs px-2 py-2' : 'text-sm'}`}
+            >
+              {isMobile ? 'Inquiries' : 'Inquiries'}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="users" 
+              className={`${isMobile ? 'text-xs px-2 py-2' : 'text-sm'}`}
+            >
+              Users
+            </TabsTrigger>
+            <TabsTrigger 
+              value="payments" 
+              className={`${isMobile ? 'text-xs px-2 py-2' : 'text-sm'}`}
+            >
+              {isMobile ? 'Plans' : 'Payment Plans'}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="analytics" 
+              className={`${isMobile ? 'text-xs px-2 py-2 col-span-3 mt-1' : 'text-sm'}`}
+            >
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger 
+              value="notifications" 
+              className={`${isMobile ? 'text-xs px-2 py-2 col-span-3 mt-1' : 'text-sm'}`}
+            >
+              Notifications
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="inquiries" className="space-y-4">
