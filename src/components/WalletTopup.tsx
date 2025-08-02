@@ -92,7 +92,7 @@ const WalletTopup = ({ userId, onSuccess }: WalletTopupProps) => {
           Top Up Wallet
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-w-[95vw] mx-4">
         <DialogHeader>
           <DialogTitle>Top Up Your Wallet</DialogTitle>
           <DialogDescription>
@@ -104,10 +104,10 @@ const WalletTopup = ({ userId, onSuccess }: WalletTopupProps) => {
           <div className="space-y-2">
             <Label htmlFor="currency">Currency</Label>
             <Select value={currency} onValueChange={(value: "NGN" | "USD") => setCurrency(value)}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-full">
                 <SelectItem value="NGN">₦ Nigerian Naira</SelectItem>
                 <SelectItem value="USD">$ US Dollar</SelectItem>
               </SelectContent>
@@ -139,11 +139,11 @@ const WalletTopup = ({ userId, onSuccess }: WalletTopupProps) => {
             </div>
           </Card>
 
-          <div className="flex space-x-2">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
             <Button 
               onClick={handleTopup} 
               disabled={loading || !amount}
-              className="flex-1"
+              className="flex-1 w-full"
             >
               {loading ? "Processing..." : `Pay ${getCurrencySymbol()}${amount || "0"}`}
             </Button>
@@ -151,6 +151,7 @@ const WalletTopup = ({ userId, onSuccess }: WalletTopupProps) => {
               variant="outline" 
               onClick={() => setIsOpen(false)}
               disabled={loading}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>

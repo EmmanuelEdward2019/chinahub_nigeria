@@ -186,18 +186,18 @@ const Dashboard = () => {
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <img src="/lovable-uploads/0bdcaaca-e82b-4c23-9eb4-934cd15493e9.png" alt="ChinaHub Logo" className="h-8 w-auto" />
+          <div className="flex justify-between items-center h-16 overflow-x-auto">
+            <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
+              <img src="/lovable-uploads/0bdcaaca-e82b-4c23-9eb4-934cd15493e9.png" alt="ChinaHub Logo" className="h-6 md:h-8 w-auto" />
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-1 md:space-x-4 flex-shrink-0">
               {/* Notifications */}
               <div className="relative">
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={markNotificationsAsRead}
-                  className="relative"
+                  className="relative h-8 w-8 p-0 md:h-auto md:w-auto md:px-3"
                 >
                   <Bell className="h-4 w-4" />
                   {notifications.filter(n => !n.read).length > 0 && (
@@ -206,8 +206,8 @@ const Dashboard = () => {
                 </Button>
               </div>
 
-              {/* Currency Selector */}
-              <div className="flex items-center space-x-2">
+              {/* Currency Selector - Hidden on mobile */}
+              <div className="hidden md:flex items-center space-x-2">
                 <label className="text-sm font-medium">Currency:</label>
                 <select
                   value={currency}
@@ -222,9 +222,9 @@ const Dashboard = () => {
               {/* Settings */}
               <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
+                  <Button variant="outline" size="sm" className="h-8 w-8 p-0 md:h-auto md:w-auto md:px-3">
+                    <Settings className="h-4 w-4" />
+                    <span className="hidden md:inline md:ml-2">Settings</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl">
@@ -240,14 +240,14 @@ const Dashboard = () => {
 
               {/* Admin Panel Link */}
               {isAdmin && (
-                <Button variant="outline" size="sm" onClick={() => navigate("/admin_2025store")}>
+                <Button variant="outline" size="sm" onClick={() => navigate("/admin_2025store")} className="hidden md:inline-flex">
                   Admin Panel
                 </Button>
               )}
 
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+              <Button variant="outline" size="sm" onClick={handleSignOut} className="h-8 w-8 p-0 md:h-auto md:w-auto md:px-3">
+                <LogOut className="h-4 w-4" />
+                <span className="hidden md:inline md:ml-2">Sign Out</span>
               </Button>
             </div>
           </div>
