@@ -32,6 +32,8 @@ interface Inquiry {
   admin_feedback?: string;
   processing_fee_naira?: number;
   processing_fee_dollar?: number;
+  quote_confirmed_at?: string;
+  quote_payment_processed?: boolean;
 }
 
 interface Notification {
@@ -104,7 +106,7 @@ const Dashboard = () => {
       // Fetch inquiries with more details
       const { data: inquiriesData } = await supabase
         .from('inquiries')
-        .select('id, item_name, status, created_at, supplier_quote, admin_feedback, processing_fee_naira, processing_fee_dollar')
+        .select('id, item_name, status, created_at, supplier_quote, admin_feedback, processing_fee_naira, processing_fee_dollar, quote_confirmed_at, quote_payment_processed')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(5);
@@ -156,6 +158,58 @@ const Dashboard = () => {
   const viewQuoteDetails = (inquiry: Inquiry) => {
     setSelectedInquiry(inquiry);
     setIsQuoteDialogOpen(true);
+  };
+
+  const confirmQuote = async (inquiry: Inquiry) => {
+    if (!user || !wallet) return;
+
+    const processingFee = currency === "NGN" ? inquiry.processing_fee_naira : inquiry.processing_fee_dollar;
+    const currentBalance = currency === "NGN" ? wallet.naira_balance : wallet.dollar_balance;
+
+    if (!processingFee) {
+      toast({
+        title: "Error",
+        description: "No processing fee set for this currency",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (currentBalance < processingFee) {
+      toast({
+        title: "Insufficient Funds",
+        description: `You need ${currency === "NGN" ? "₦" : "$"}${(processingFee / 100).toLocaleString()} to confirm this quote. Please top up your wallet.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.functions.invoke('confirm-quote', {
+        body: {
+          inquiry_id: inquiry.id,
+          currency: currency
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Quote Confirmed",
+        description: "Payment processed successfully. We'll proceed with sourcing your product.",
+      });
+
+      // Refresh data
+      await fetchUserData(user.id);
+      setIsQuoteDialogOpen(false);
+    } catch (error) {
+      console.error('Error confirming quote:', error);
+      toast({
+        title: "Error",
+        description: "Failed to confirm quote. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatCurrency = (amount: number, curr: "NGN" | "USD") => {
@@ -341,36 +395,50 @@ const Dashboard = () => {
                          <p className="text-xs text-muted-foreground">
                            {new Date(inquiry.created_at).toLocaleDateString()}
                          </p>
-                         {inquiry.status === 'pending' && (
-                           <p className="text-xs text-blue-600 font-medium mt-1">
-                             Payment confirmed - Awaiting admin review (3-5 days)
-                           </p>
-                         )}
-                         {inquiry.supplier_quote && inquiry.status === 'approved' && (
-                           <Button
-                             variant="link"
-                             size="sm"
-                             className="text-xs p-0 h-auto mt-1"
-                             onClick={() => viewQuoteDetails(inquiry)}
-                           >
-                             <MessageSquare className="h-3 w-3 mr-1" />
-                             View Quote
-                           </Button>
-                         )}
+                          {inquiry.status === 'pending' && (
+                            <p className="text-xs text-blue-600 font-medium mt-1">
+                              Awaiting admin review (3-5 days)
+                            </p>
+                          )}
+                          {inquiry.supplier_quote && inquiry.status === 'approved' && !inquiry.quote_payment_processed && (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="text-xs p-0 h-auto mt-1 text-green-600"
+                              onClick={() => viewQuoteDetails(inquiry)}
+                            >
+                              <MessageSquare className="h-3 w-3 mr-1" />
+                              View Quote & Confirm
+                            </Button>
+                          )}
+                          {inquiry.supplier_quote && inquiry.status === 'approved' && inquiry.quote_payment_processed && (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="text-xs p-0 h-auto mt-1"
+                              onClick={() => viewQuoteDetails(inquiry)}
+                            >
+                              <MessageSquare className="h-3 w-3 mr-1" />
+                              View Quote
+                            </Button>
+                          )}
                       </div>
                       <div className="flex flex-col items-end space-y-1">
                         <Badge className={getStatusColor(inquiry.status)}>
                           {inquiry.status}
                         </Badge>
-                        {inquiry.processing_fee_naira && inquiry.status === 'approved' && (
-                          <div className="text-xs text-muted-foreground flex items-center">
-                            <DollarSign className="h-3 w-3 mr-1" />
-                            {formatCurrency(
-                              currency === "NGN" ? inquiry.processing_fee_naira : (inquiry.processing_fee_dollar || 0),
-                              currency
-                            )}
-                          </div>
-                        )}
+                         {inquiry.processing_fee_naira && inquiry.status === 'approved' && (
+                           <div className="text-xs text-muted-foreground flex items-center">
+                             <DollarSign className="h-3 w-3 mr-1" />
+                             {formatCurrency(
+                               currency === "NGN" ? inquiry.processing_fee_naira : (inquiry.processing_fee_dollar || 0),
+                               currency
+                             )}
+                             {inquiry.quote_payment_processed && (
+                               <span className="ml-1 text-green-600">✓ Paid</span>
+                             )}
+                           </div>
+                         )}
                       </div>
                     </div>
                   ))}
@@ -444,36 +512,44 @@ const Dashboard = () => {
                       </div>
 
                       <div className="pt-2">
-                        <Button 
-                          className="w-full" 
-                          disabled={!wallet || 
-                            (currency === "NGN" 
-                              ? wallet.naira_balance < (selectedInquiry.processing_fee_naira || 0)
-                              : wallet.dollar_balance < (selectedInquiry.processing_fee_dollar || 0)
-                            )
-                          }
-                        >
-                          {!wallet || 
-                            (currency === "NGN" 
-                              ? wallet.naira_balance < (selectedInquiry.processing_fee_naira || 0)
-                              : wallet.dollar_balance < (selectedInquiry.processing_fee_dollar || 0)
-                            )
-                            ? "Insufficient Balance" 
-                            : "Proceed with Sourcing"
-                          }
-                        </Button>
-                        
-                        {wallet && (
-                          <p className="text-xs text-muted-foreground text-center mt-2">
-                            Your balance: {formatCurrency(
-                              currency === "NGN" ? wallet.naira_balance : wallet.dollar_balance,
-                              currency
-                            )}
-                          </p>
-                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Note: This fee covers procurement, quality assurance, and shipping coordination services.
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
+                </div>
+
+                <div className="pt-4 border-t">
+                  {selectedInquiry?.quote_payment_processed ? (
+                    <div>
+                      <p className="text-sm text-green-600 mb-4 font-medium">
+                        ✓ Quote confirmed and payment processed. Our team is now sourcing your product.
+                      </p>
+                      <div className="flex justify-end">
+                        <Button variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>
+                          Close
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        This quote has been approved. Confirm to proceed with sourcing and process payment.
+                      </p>
+                      <div className="flex justify-end space-x-2">
+                        <Button variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>
+                          Close
+                        </Button>
+                        <Button 
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => selectedInquiry && confirmQuote(selectedInquiry)}
+                        >
+                          Confirm Quote & Pay
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

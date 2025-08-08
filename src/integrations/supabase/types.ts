@@ -51,6 +51,8 @@ export type Database = {
           processing_fee_dollar: number | null
           processing_fee_naira: number | null
           quantity: number
+          quote_confirmed_at: string | null
+          quote_payment_processed: boolean | null
           reviewed_at: string | null
           reviewed_by: string | null
           sample_file_url: string | null
@@ -72,6 +74,8 @@ export type Database = {
           processing_fee_dollar?: number | null
           processing_fee_naira?: number | null
           quantity: number
+          quote_confirmed_at?: string | null
+          quote_payment_processed?: boolean | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           sample_file_url?: string | null
@@ -93,6 +97,8 @@ export type Database = {
           processing_fee_dollar?: number | null
           processing_fee_naira?: number | null
           quantity?: number
+          quote_confirmed_at?: string | null
+          quote_payment_processed?: boolean | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           sample_file_url?: string | null

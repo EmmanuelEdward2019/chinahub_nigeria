@@ -136,35 +136,11 @@ const InquiryForm = () => {
     setSampleFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const processPayment = async () => {
-    if (!user || !wallet || !inquirySettings) return;
-
-    const inquiryFee = currency === "NGN" ? inquirySettings.default_fee_naira : inquirySettings.default_fee_dollar;
-    const currentBalance = currency === "NGN" ? wallet.naira_balance : wallet.dollar_balance;
-
-    if (currentBalance < inquiryFee) {
-      toast({
-        title: "Insufficient Funds",
-        description: `You need ${currency === "NGN" ? "₦" : "$"}${(inquiryFee / 100).toLocaleString()} to submit an inquiry. Please fund your wallet first.`,
-        variant: "destructive",
-      });
-      return;
-    }
+  const submitInquiry = async () => {
+    if (!user) return;
 
     setSubmitting(true);
     try {
-      // Deduct payment from wallet
-      const walletUpdate = currency === "NGN" 
-        ? { naira_balance: wallet.naira_balance - inquiryFee }
-        : { dollar_balance: wallet.dollar_balance - inquiryFee };
-
-      const { error: walletError } = await supabase
-        .from('wallets')
-        .update(walletUpdate)
-        .eq('user_id', user.id);
-
-      if (walletError) throw walletError;
-
       // Upload multiple files
       const uploadedFiles = [];
       for (let i = 0; i < sampleFiles.length; i++) {
@@ -184,7 +160,7 @@ const InquiryForm = () => {
         });
       }
 
-      const { data: inquiryData, error: inquiryError } = await supabase
+      const { error: inquiryError } = await supabase
         .from('inquiries')
         .insert({
           user_id: user.id,
@@ -193,48 +169,21 @@ const InquiryForm = () => {
           description,
           quantity,
           sample_files: uploadedFiles,
-          payment_status: 'paid'
-        })
-        .select()
-        .single();
+          payment_status: 'unpaid'
+        });
 
       if (inquiryError) throw inquiryError;
 
-      // Create order record
-      await supabase
-        .from('orders')
-        .insert({
-          user_id: user.id,
-          inquiry_id: inquiryData.id,
-          amount: inquiryFee,
-          currency: currency,
-          status: 'completed',
-          payment_method: 'wallet'
-        });
-
-      // Create transaction record
-      await supabase
-        .from('transactions')
-        .insert({
-          user_id: user.id,
-          inquiry_id: inquiryData.id,
-          transaction_type: 'payment',
-          amount: inquiryFee,
-          currency: currency,
-          status: 'completed',
-          reference: `INQ-${inquiryData.id.substring(0, 8)}`
-        });
-
       toast({
         title: "Inquiry submitted successfully!",
-        description: "Payment processed. We'll review your request and get back to you within 3-5 business days.",
+        description: "We'll review your request and get back to you with a quote within 3-5 business days.",
       });
 
       navigate("/dashboard");
     } catch (error) {
-      console.error('Error processing payment:', error);
+      console.error('Error submitting inquiry:', error);
       toast({
-        title: "Error processing payment",
+        title: "Error submitting inquiry",
         description: "Please try again later",
         variant: "destructive",
       });
@@ -246,21 +195,7 @@ const InquiryForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !wallet || !inquirySettings) return;
-
-    const inquiryFee = currency === "NGN" ? inquirySettings.default_fee_naira : inquirySettings.default_fee_dollar;
-    const currentBalance = currency === "NGN" ? wallet.naira_balance : wallet.dollar_balance;
-
-    // Check if user has sufficient funds
-    if (currentBalance < inquiryFee) {
-      toast({
-        title: "Insufficient Funds",
-        description: `You need ${currency === "NGN" ? "₦" : "$"}${(inquiryFee / 100).toLocaleString()} to submit an inquiry. Please fund your wallet first.`,
-        variant: "destructive",
-      });
-      navigate("/dashboard");
-      return;
-    }
+    if (!user) return;
 
     setShowPaymentDialog(true);
   };
@@ -428,50 +363,39 @@ const InquiryForm = () => {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={submitting || !itemName || !description || !inquirySettings}
+                  disabled={submitting || !itemName || !description}
                   className="min-w-32"
                 >
-                  {submitting ? "Processing..." : `Pay ${currency === "NGN" ? "₦" : "$"}${inquirySettings ? (inquirySettings[currency === "NGN" ? "default_fee_naira" : "default_fee_dollar"] / 100).toLocaleString() : "0"} & Submit`}
+                  {submitting ? "Submitting..." : "Submit Inquiry"}
                 </Button>
               </div>
 
-              {/* Payment Confirmation Dialog */}
+              {/* Submission Confirmation Dialog */}
               <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Confirm Payment</DialogTitle>
+                    <DialogTitle>Confirm Submission</DialogTitle>
                     <DialogDescription>
-                      You are about to pay {currency === "NGN" ? "₦" : "$"}{inquirySettings ? (inquirySettings[currency === "NGN" ? "default_fee_naira" : "default_fee_dollar"] / 100).toLocaleString() : "0"} to submit your inquiry for "{itemName}"
+                      You are about to submit your inquiry for "{itemName}". No payment is required at this time.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div className="p-4 bg-muted rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span>Current Wallet Balance:</span>
-                        <span className="font-semibold">{currency === "NGN" ? "₦" : "$"}{wallet ? ((currency === "NGN" ? wallet.naira_balance : wallet.dollar_balance) / 100).toLocaleString() : '0'}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span>Inquiry Fee:</span>
-                        <span className="font-semibold">{currency === "NGN" ? "₦" : "$"}{inquirySettings ? (inquirySettings[currency === "NGN" ? "default_fee_naira" : "default_fee_dollar"] / 100).toLocaleString() : "0"}</span>
-                      </div>
-                      <hr className="my-2" />
-                      <div className="flex justify-between items-center">
-                        <span>Balance After Payment:</span>
-                        <span className="font-semibold">{currency === "NGN" ? "₦" : "$"}{wallet && inquirySettings ? (((currency === "NGN" ? wallet.naira_balance : wallet.dollar_balance) - inquirySettings[currency === "NGN" ? "default_fee_naira" : "default_fee_dollar"]) / 100).toLocaleString() : '0'}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="p-4 bg-blue-50 rounded-lg">
-                      <p className="text-sm text-blue-800">
-                        <strong>Processing Timeline:</strong> After payment, your inquiry will be reviewed and you'll receive feedback within 3-5 business days.
+                      <p className="text-sm">
+                        Once you submit this inquiry:
                       </p>
+                      <ul className="text-sm text-muted-foreground mt-2 space-y-1">
+                        <li>• Our team will review your request within 3-5 business days</li>
+                        <li>• You'll receive a quote with supplier details and processing fees</li>
+                        <li>• Payment will only be requested after you approve our quote</li>
+                      </ul>
                     </div>
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" onClick={() => setShowPaymentDialog(false)} className="flex-1">
                         Cancel
                       </Button>
-                      <Button onClick={processPayment} disabled={submitting}>
-                        {submitting ? "Processing..." : "Confirm Payment"}
+                      <Button onClick={submitInquiry} disabled={submitting} className="flex-1">
+                        {submitting ? "Submitting..." : "Submit Inquiry"}
                       </Button>
                     </div>
                   </div>
