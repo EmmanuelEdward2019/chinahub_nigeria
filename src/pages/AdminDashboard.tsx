@@ -46,8 +46,9 @@ interface Inquiry {
   processing_fee_dollar?: number;
   profiles: {
     full_name: string;
-    email?: string;
-  };
+    phone?: string;
+    country?: string;
+  } | null;
 }
 
 interface AdminStats {
@@ -175,7 +176,20 @@ const AdminDashboard = () => {
           .eq('status', 'completed')
       ]);
 
-      setInquiries((inquiriesResponse.data as any) || []);
+      console.log('Inquiries response:', inquiriesResponse);
+      
+      if (inquiriesResponse.error) {
+        console.error('Error fetching inquiries:', inquiriesResponse.error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch inquiries",
+          variant: "destructive",
+        });
+      } else {
+        console.log('Setting inquiries:', inquiriesResponse.data);
+        setInquiries((inquiriesResponse.data as any) || []);
+      }
+      
       setNotifications(notificationsResponse.data || []);
 
       const totalWalletTopups = walletDataResponse.data?.length || 0;
@@ -447,7 +461,7 @@ const AdminDashboard = () => {
                     {inquiries.map((inquiry) => (
                       <TableRow key={inquiry.id}>
                         <TableCell className="font-medium">{inquiry.item_name}</TableCell>
-                        <TableCell>{inquiry.profiles.full_name}</TableCell>
+                        <TableCell>{inquiry.profiles?.full_name || 'N/A'}</TableCell>
                         <TableCell>{inquiry.quantity}</TableCell>
                         <TableCell>
                           <Badge className={getStatusColor(inquiry.status)}>
