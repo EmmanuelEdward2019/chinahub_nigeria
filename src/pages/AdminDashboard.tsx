@@ -123,9 +123,46 @@ const AdminDashboard = () => {
 
   const fetchData = async () => {
     try {
-      // Fetch all data in parallel for better performance
+      console.log('Fetching admin data...');
+      
+      // First test basic inquiry fetch
+      const inquiriesTest = await supabase
+        .from('inquiries')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      console.log('Basic inquiries fetch:', inquiriesTest);
+      
+      if (inquiriesTest.error) {
+        console.error('Error fetching inquiries:', inquiriesTest.error);
+        toast({
+          title: "Error",
+          description: `Failed to fetch inquiries: ${inquiriesTest.error.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Now fetch with profiles using a manual join approach
+      const inquiriesWithProfiles = [];
+      for (const inquiry of inquiriesTest.data || []) {
+        const profileResponse = await supabase
+          .from('profiles')
+          .select('full_name, phone, country')
+          .eq('user_id', inquiry.user_id)
+          .maybeSingle();
+        
+        inquiriesWithProfiles.push({
+          ...inquiry,
+          profiles: profileResponse.data
+        });
+      }
+      
+      console.log('Inquiries with profiles:', inquiriesWithProfiles);
+      setInquiries(inquiriesWithProfiles);
+
+      // Fetch other data
       const [
-        inquiriesResponse,
         notificationsResponse,
         totalInquiriesResponse,
         pendingInquiriesResponse,
@@ -133,16 +170,6 @@ const AdminDashboard = () => {
         totalUsersResponse,
         walletDataResponse
       ] = await Promise.all([
-        // Fetch all inquiries with user profiles
-        supabase
-          .from('inquiries')
-          .select(`
-            *,
-            profiles!inquiries_user_id_fkey(full_name, phone, country)
-          `)
-          .order('created_at', { ascending: false }),
-        
-        // Fetch admin notifications
         supabase
           .from('notifications')
           .select('*')
@@ -150,7 +177,6 @@ const AdminDashboard = () => {
           .order('created_at', { ascending: false })
           .limit(10),
         
-        // Fetch stats in parallel
         supabase
           .from('inquiries')
           .select('*', { count: 'exact', head: true }),
@@ -175,20 +201,6 @@ const AdminDashboard = () => {
           .eq('transaction_type', 'topup')
           .eq('status', 'completed')
       ]);
-
-      console.log('Inquiries response:', inquiriesResponse);
-      
-      if (inquiriesResponse.error) {
-        console.error('Error fetching inquiries:', inquiriesResponse.error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch inquiries",
-          variant: "destructive",
-        });
-      } else {
-        console.log('Setting inquiries:', inquiriesResponse.data);
-        setInquiries((inquiriesResponse.data as any) || []);
-      }
       
       setNotifications(notificationsResponse.data || []);
 
@@ -205,8 +217,15 @@ const AdminDashboard = () => {
         totalWalletTopups,
         revenue
       });
+
+      console.log('Admin data fetched successfully');
     } catch (error) {
       console.error('Error fetching admin data:', error);
+      toast({
+        title: "Error",
+        description: `Failed to fetch data: ${error}`,
+        variant: "destructive",
+      });
     }
   };
 
