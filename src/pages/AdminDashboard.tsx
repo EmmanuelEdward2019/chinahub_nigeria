@@ -132,12 +132,12 @@ const AdminDashboard = () => {
         totalUsersResponse,
         walletDataResponse
       ] = await Promise.all([
-        // Fetch inquiries with user profiles
+        // Fetch all inquiries with user profiles
         supabase
           .from('inquiries')
           .select(`
             *,
-            profiles!inner(full_name, phone, country)
+            profiles(full_name, phone, country)
           `)
           .order('created_at', { ascending: false }),
         
