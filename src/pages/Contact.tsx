@@ -178,9 +178,9 @@ const Contact = () => {
                     Our headquarters
                   </p>
                   <p className="font-semibold">
-                    123 Global Trade Center<br />
-                    International Business District<br />
-                    Shanghai, China 200000
+                    HQ: 5th floor, 602-4, <br />
+                    Renmin North Road, Yuexiu District, <br />
+                    Guangzhou, China
                   </p>
                 </CardContent>
               </Card>
