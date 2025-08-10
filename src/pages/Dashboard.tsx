@@ -315,6 +315,61 @@ const Dashboard = () => {
           <p className="text-muted-foreground">Manage your product sourcing requests and track your progress.</p>
         </div>
 
+        {/* Notifications Card */}
+        {notifications.length > 0 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Recent Notifications
+              </CardTitle>
+              <CardDescription>
+                Important updates and messages from our team
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {notifications.slice(0, 5).map((notification) => (
+                  <div 
+                    key={notification.id} 
+                    className={`p-4 border rounded-lg ${!notification.read ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'}`}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium text-sm">{notification.title}</h4>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={notification.type === 'success' ? 'default' : notification.type === 'warning' ? 'destructive' : 'secondary'}>
+                          {notification.type}
+                        </Badge>
+                        {!notification.read && (
+                          <Badge variant="outline" className="text-xs">
+                            New
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">{notification.message}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(notification.created_at).toLocaleDateString()} at {new Date(notification.created_at).toLocaleTimeString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              {notifications.filter(n => !n.read).length > 0 && (
+                <div className="mt-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={markNotificationsAsRead}
+                    className="w-full"
+                  >
+                    Mark All as Read
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
