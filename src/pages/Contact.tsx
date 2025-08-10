@@ -165,11 +165,25 @@ const Contact = () => {
                     <div className="flex items-center gap-2">
                       <img src="/lovable-uploads/3e14156b-6a00-445b-901a-19fb81acc918.png" alt="WhatsApp" className="w-5 h-5" />
                       <img src="/lovable-uploads/755b7541-7e98-451d-95b3-e5a1e101ca49.png" alt="WeChat" className="w-5 h-5" />
-                      <p className="font-semibold">+86 19589456744</p>
+                      <a 
+                        href="https://wa.me/8619589456744" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="font-semibold text-primary hover:underline"
+                      >
+                        +86 19589456744
+                      </a>
                     </div>
                     <div className="flex items-center gap-2">
                       <img src="/lovable-uploads/3e14156b-6a00-445b-901a-19fb81acc918.png" alt="WhatsApp" className="w-5 h-5" />
-                      <p className="font-semibold">+234 8133628713</p>
+                      <a 
+                        href="https://wa.me/2348133628713" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="font-semibold text-primary hover:underline"
+                      >
+                        +234 8133628713
+                      </a>
                     </div>
                   </div>
                 </CardContent>
