@@ -29,7 +29,7 @@ const InquiryForm = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [itemName, setItemName] = useState("");
   const [description, setDescription] = useState("");
-  const [quantity, setQuantity] = useState<number>(1);
+  const [quantity, setQuantity] = useState<string>("");
   const [sampleFiles, setSampleFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -205,7 +205,7 @@ const InquiryForm = () => {
           category_id: selectedCategory || null,
           item_name: itemName,
           description,
-          quantity,
+          quantity: parseInt(quantity) || 1,
           sample_files: uploadedFiles,
           payment_status: 'paid',
           processing_fee_naira: requiredAmount
@@ -342,7 +342,8 @@ const InquiryForm = () => {
                   type="number"
                   min="1"
                   value={quantity}
-                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  placeholder="Enter quantity"
                   required
                 />
               </div>
@@ -402,7 +403,7 @@ const InquiryForm = () => {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={submitting || !itemName || !description}
+                  disabled={submitting || !itemName || !description || !quantity}
                   className="min-w-32"
                 >
                   {submitting ? "Processing..." : "Pay ₦1,000"}
@@ -434,9 +435,17 @@ const InquiryForm = () => {
                     
                     {wallet && wallet.naira_balance < 100000 && (
                       <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <p className="text-sm text-red-600">
+                        <p className="text-sm text-red-600 mb-2">
                           Insufficient balance. Please top up your wallet before submitting.
                         </p>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => navigate("/dashboard")}
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          Go to Wallet Top-up
+                        </Button>
                       </div>
                     )}
 
