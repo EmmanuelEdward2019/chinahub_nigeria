@@ -315,8 +315,8 @@ const Dashboard = () => {
           <p className="text-muted-foreground">Manage your product sourcing requests and track your progress.</p>
         </div>
 
-        {/* Notifications Card */}
-        {notifications.length > 0 && (
+        {/* Recent Notifications Card - Only unread or latest */}
+        {(notifications.filter(n => !n.read).length > 0 || notifications.slice(0, 2).length > 0) && (
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -324,12 +324,15 @@ const Dashboard = () => {
                 Recent Notifications
               </CardTitle>
               <CardDescription>
-                Important updates and messages from our team
+                Your latest updates - click the bell icon above for all notifications
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {notifications.slice(0, 5).map((notification) => (
+                {(notifications.filter(n => !n.read).length > 0 
+                  ? notifications.filter(n => !n.read).slice(0, 3)
+                  : notifications.slice(0, 2)
+                ).map((notification) => (
                   <div 
                     key={notification.id} 
                     className={`p-4 border rounded-lg ${!notification.read ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'}`}
@@ -354,17 +357,10 @@ const Dashboard = () => {
                   </div>
                 ))}
               </div>
-              {notifications.filter(n => !n.read).length > 0 && (
-                <div className="mt-4">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={markNotificationsAsRead}
-                    className="w-full"
-                  >
-                    Mark All as Read
-                  </Button>
-                </div>
+              {notifications.filter(n => !n.read).length > 3 && (
+                <p className="text-xs text-muted-foreground text-center mt-3">
+                  Click the bell icon above to see all notifications
+                </p>
               )}
             </CardContent>
           </Card>

@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { User, Menu, X, ChevronDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { User, Menu, X, ChevronDown, Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
@@ -9,14 +11,62 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface NavigationProps {
   user: any;
 }
 
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  read: boolean;
+  created_at: string;
+  inquiry_id?: string;
+}
+
 const Navigation = ({ user }: NavigationProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user]);
+
+  const fetchNotifications = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setNotifications(data);
+    }
+  };
+
+  const markAsRead = async (notificationId: string) => {
+    await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('id', notificationId);
+    
+    fetchNotifications();
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <header className="bg-white shadow-sm border-b sticky top-0 z-50">
@@ -64,10 +114,66 @@ const Navigation = ({ user }: NavigationProps) => {
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
-              <Button onClick={() => navigate("/dashboard")} variant="outline">
-                <User className="h-4 w-4 mr-2" />
-                Dashboard
-              </Button>
+              <>
+                <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm" className="relative">
+                      <Bell className="h-4 w-4" />
+                      {unreadCount > 0 && (
+                        <Badge 
+                          variant="destructive" 
+                          className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                        >
+                          {unreadCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0" align="end">
+                    <div className="p-4 border-b">
+                      <h4 className="font-semibold">Notifications</h4>
+                    </div>
+                    <ScrollArea className="h-80">
+                      {notifications.length === 0 ? (
+                        <div className="p-4 text-center text-muted-foreground">
+                          No notifications
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          {notifications.map((notification) => (
+                            <div
+                              key={notification.id}
+                              className={`p-3 hover:bg-muted cursor-pointer border-b ${
+                                !notification.read ? 'bg-blue-50' : ''
+                              }`}
+                              onClick={() => markAsRead(notification.id)}
+                            >
+                              <div className="flex justify-between items-start mb-1">
+                                <h5 className="font-medium text-sm">{notification.title}</h5>
+                                {!notification.read && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    New
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {notification.message}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {new Date(notification.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </PopoverContent>
+                </Popover>
+                <Button onClick={() => navigate("/dashboard")} variant="outline">
+                  <User className="h-4 w-4 mr-2" />
+                  Dashboard
+                </Button>
+              </>
             ) : (
               <Button onClick={() => navigate("/auth")}>
                 Sign In
