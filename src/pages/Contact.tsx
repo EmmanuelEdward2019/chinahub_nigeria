@@ -161,8 +161,17 @@ const Contact = () => {
                   <p className="text-muted-foreground mb-2">
                     Speak with our customer service team
                   </p>
-                  <p className="font-semibold">+86 19589456744 </p>
-                  <p className="font-semibold">+234 8133628713</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <img src="/lovable-uploads/3e14156b-6a00-445b-901a-19fb81acc918.png" alt="WhatsApp" className="w-5 h-5" />
+                      <img src="/lovable-uploads/755b7541-7e98-451d-95b3-e5a1e101ca49.png" alt="WeChat" className="w-5 h-5" />
+                      <p className="font-semibold">+86 19589456744</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <img src="/lovable-uploads/3e14156b-6a00-445b-901a-19fb81acc918.png" alt="WhatsApp" className="w-5 h-5" />
+                      <p className="font-semibold">+234 8133628713</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
