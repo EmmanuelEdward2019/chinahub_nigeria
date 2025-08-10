@@ -137,10 +137,23 @@ const InquiryForm = () => {
   };
 
   const submitInquiry = async () => {
-    if (!user) return;
+    if (!user || !wallet) return;
 
     setSubmitting(true);
     try {
+      // Check if user has sufficient balance (₦1000)
+      const requiredAmount = 100000; // ₦1000 in kobo
+      if (wallet.naira_balance < requiredAmount) {
+        toast({
+          title: "Insufficient balance",
+          description: "You need at least ₦1,000 to submit an inquiry. Please top up your wallet.",
+          variant: "destructive",
+        });
+        setSubmitting(false);
+        setShowPaymentDialog(false);
+        return;
+      }
+
       // Upload multiple files
       const uploadedFiles = [];
       for (let i = 0; i < sampleFiles.length; i++) {
@@ -160,6 +173,31 @@ const InquiryForm = () => {
         });
       }
 
+      // Create transaction record
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: user.id,
+          amount: requiredAmount,
+          currency: 'NGN',
+          transaction_type: 'inquiry_fee',
+          status: 'completed'
+        });
+
+      if (transactionError) throw transactionError;
+
+      // Deduct from wallet balance (this will need a database function or edge function)
+      const { error: walletError } = await supabase.rpc('deduct_wallet_balance', {
+        user_id: user.id,
+        amount: requiredAmount,
+        currency: 'naira'
+      });
+
+      if (walletError) {
+        // If wallet deduction fails, we should rollback the transaction
+        throw walletError;
+      }
+
       const { error: inquiryError } = await supabase
         .from('inquiries')
         .insert({
@@ -169,14 +207,15 @@ const InquiryForm = () => {
           description,
           quantity,
           sample_files: uploadedFiles,
-          payment_status: 'unpaid'
+          payment_status: 'paid',
+          processing_fee_naira: requiredAmount
         });
 
       if (inquiryError) throw inquiryError;
 
       toast({
         title: "Inquiry submitted successfully!",
-        description: "We'll review your request and get back to you with a quote within 3-5 business days.",
+        description: "Payment of ₦1,000 has been deducted from your wallet. We'll review your request and get back to you with a quote within 3-5 business days.",
       });
 
       navigate("/dashboard");
@@ -374,28 +413,54 @@ const InquiryForm = () => {
               <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Confirm Submission</DialogTitle>
+                    <DialogTitle>Confirm Payment & Submission</DialogTitle>
                     <DialogDescription>
-                      You are about to submit your inquiry for "{itemName}". No payment is required at this time.
+                      You are about to submit your inquiry for "{itemName}". 
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm">
-                        Once you submit this inquiry:
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-medium">Processing Fee:</span>
+                        <span className="font-bold text-lg">₦1,000</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span>Your Wallet Balance:</span>
+                        <span className={wallet && wallet.naira_balance >= 100000 ? "text-green-600" : "text-red-600"}>
+                          ₦{wallet ? (wallet.naira_balance / 100).toLocaleString() : '0'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {wallet && wallet.naira_balance < 100000 && (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-600">
+                          Insufficient balance. Please top up your wallet before submitting.
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-700">
+                        Once payment is processed:
                       </p>
-                      <ul className="text-sm text-muted-foreground mt-2 space-y-1">
+                      <ul className="text-sm text-blue-600 mt-2 space-y-1">
+                        <li>• ₦1,000 will be deducted from your wallet</li>
                         <li>• Our team will review your request within 3-5 business days</li>
-                        <li>• You'll receive a quote with supplier details and processing fees</li>
-                        <li>• Payment will only be requested after you approve our quote</li>
+                        <li>• You'll receive a quote with supplier details</li>
                       </ul>
                     </div>
+                    
                     <div className="flex space-x-2">
                       <Button variant="outline" onClick={() => setShowPaymentDialog(false)} className="flex-1">
                         Cancel
                       </Button>
-                      <Button onClick={submitInquiry} disabled={submitting} className="flex-1">
-                        {submitting ? "Submitting..." : "Submit Inquiry"}
+                      <Button 
+                        onClick={submitInquiry} 
+                        disabled={submitting || !wallet || wallet.naira_balance < 100000} 
+                        className="flex-1"
+                      >
+                        {submitting ? "Processing..." : "Pay ₦1,000 & Submit"}
                       </Button>
                     </div>
                   </div>

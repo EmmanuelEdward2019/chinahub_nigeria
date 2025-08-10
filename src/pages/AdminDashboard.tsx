@@ -575,28 +575,6 @@ const AdminDashboard = () => {
                                     />
                                   </div>
 
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                      <Label htmlFor="processingFeeNaira">Processing Fee (₦)</Label>
-                                      <Input
-                                        id="processingFeeNaira"
-                                        type="number"
-                                        value={processingFeeNaira}
-                                        onChange={(e) => setProcessingFeeNaira(e.target.value)}
-                                        placeholder="1000"
-                                      />
-                                    </div>
-                                    <div className="space-y-2">
-                                      <Label htmlFor="processingFeeDollar">Processing Fee ($)</Label>
-                                      <Input
-                                        id="processingFeeDollar"
-                                        type="number"
-                                        value={processingFeeDollar}
-                                        onChange={(e) => setProcessingFeeDollar(e.target.value)}
-                                        placeholder="2"
-                                      />
-                                    </div>
-                                  </div>
 
                                   <div className="flex space-x-2 pt-4">
                                     <Button 
