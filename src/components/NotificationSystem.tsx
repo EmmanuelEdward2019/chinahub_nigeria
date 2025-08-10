@@ -127,21 +127,43 @@ const NotificationSystem = ({ isAdmin, currentUserId }: { isAdmin: boolean; curr
     }
 
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: selectedUser,
+      // Handle "all" users case
+      if (selectedUser === "all") {
+        const notifications = users.map(user => ({
+          user_id: user.user_id,
           title: newNotificationTitle,
           message: newNotificationMessage,
           type: notificationType
+        }));
+
+        const { error } = await supabase
+          .from('notifications')
+          .insert(notifications);
+
+        if (error) throw error;
+
+        toast({
+          title: "Notifications Sent",
+          description: `Notification sent to all ${users.length} users successfully`,
         });
+      } else {
+        // Send to specific user
+        const { error } = await supabase
+          .from('notifications')
+          .insert({
+            user_id: selectedUser,
+            title: newNotificationTitle,
+            message: newNotificationMessage,
+            type: notificationType
+          });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Notification Sent",
-        description: "Your notification has been sent successfully",
-      });
+        toast({
+          title: "Notification Sent",
+          description: "Your notification has been sent successfully",
+        });
+      }
 
       setSelectedUser("");
       setNewNotificationTitle("");
@@ -242,6 +264,9 @@ const NotificationSystem = ({ isAdmin, currentUserId }: { isAdmin: boolean; curr
                         <SelectValue placeholder="Choose a user" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="all">
+                          <span className="font-medium">📢 Send to All Users</span>
+                        </SelectItem>
                         {users.map((user) => (
                           <SelectItem key={user.user_id} value={user.user_id}>
                             {user.full_name}
