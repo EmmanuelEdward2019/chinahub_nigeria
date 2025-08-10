@@ -465,23 +465,37 @@ const AdminDashboard = () => {
                 <CardDescription>Review and process user inquiries</CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead>User</TableHead>
-                      <TableHead>Quantity</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {inquiries.map((inquiry) => (
-                      <TableRow key={inquiry.id}>
-                        <TableCell className="font-medium">{inquiry.item_name}</TableCell>
-                        <TableCell>{inquiry.profiles?.full_name || 'N/A'}</TableCell>
-                        <TableCell>{inquiry.quantity}</TableCell>
+                  <Table>
+                   <TableHeader>
+                     <TableRow>
+                       <TableHead>Image</TableHead>
+                       <TableHead>Product</TableHead>
+                       <TableHead>User</TableHead>
+                       <TableHead>Quantity</TableHead>
+                       <TableHead>Status</TableHead>
+                       <TableHead>Date</TableHead>
+                       <TableHead>Actions</TableHead>
+                     </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                     {inquiries.map((inquiry) => (
+                       <TableRow key={inquiry.id}>
+                         <TableCell>
+                           {inquiry.sample_file_url ? (
+                             <img 
+                               src={inquiry.sample_file_url} 
+                               alt={inquiry.item_name}
+                               className="w-12 h-12 object-cover rounded-md"
+                             />
+                           ) : (
+                             <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
+                               <span className="text-xs text-muted-foreground">No image</span>
+                             </div>
+                           )}
+                         </TableCell>
+                         <TableCell className="font-medium">{inquiry.item_name}</TableCell>
+                         <TableCell>{inquiry.profiles?.full_name || 'N/A'}</TableCell>
+                         <TableCell>{inquiry.quantity}</TableCell>
                         <TableCell>
                           <Badge className={getStatusColor(inquiry.status)}>
                             {inquiry.status}
