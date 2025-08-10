@@ -425,6 +425,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      deduct_wallet_balance: {
+        Args: { user_id: string; amount: number; currency: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _user_id: string
