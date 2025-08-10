@@ -66,10 +66,7 @@ const NotificationSystem = ({ isAdmin, currentUserId }: { isAdmin: boolean; curr
     try {
       let query = supabase
         .from('notifications')
-        .select(`
-          *,
-          profiles(full_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (!isAdmin) {
@@ -102,10 +99,7 @@ const NotificationSystem = ({ isAdmin, currentUserId }: { isAdmin: boolean; curr
     try {
       const { data, error } = await supabase
         .from('notification_replies')
-        .select(`
-          *,
-          profiles(full_name)
-        `)
+        .select('*')
         .eq('notification_id', notificationId)
         .order('created_at', { ascending: true });
       
@@ -345,9 +339,6 @@ const NotificationSystem = ({ isAdmin, currentUserId }: { isAdmin: boolean; curr
                   </div>
                   <p className="text-sm text-muted-foreground">{notification.message}</p>
                   <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                    <User className="h-3 w-3" />
-                    <span>{notification.profiles?.full_name}</span>
-                    <span>•</span>
                     <span>{new Date(notification.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
@@ -384,7 +375,7 @@ const NotificationSystem = ({ isAdmin, currentUserId }: { isAdmin: boolean; curr
               {/* Original notification */}
               <div className="p-3 bg-muted rounded-lg">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium">{selectedNotification?.profiles?.full_name}</span>
+                  <span className="font-medium">System</span>
                   <Badge className={getTypeColor(selectedNotification?.type || 'info')}>
                     {selectedNotification?.type}
                   </Badge>
@@ -408,7 +399,7 @@ const NotificationSystem = ({ isAdmin, currentUserId }: { isAdmin: boolean; curr
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium text-sm">
-                        {reply.profiles?.full_name}
+                        {reply.is_admin_reply ? 'Admin' : 'User'}
                       </span>
                       {reply.is_admin_reply && (
                         <Badge variant="outline" className="text-xs">
