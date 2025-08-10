@@ -178,7 +178,7 @@ const Contact = () => {
                     Our headquarters
                   </p>
                   <p className="font-semibold">
-                    HQ: 5th floor, 602-4, <br />
+                    5th floor, 602-4, <br />
                     Renmin North Road, Yuexiu District, <br />
                     Guangzhou, China
                   </p>
