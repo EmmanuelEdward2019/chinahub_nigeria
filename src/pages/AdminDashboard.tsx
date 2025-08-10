@@ -40,6 +40,11 @@ interface Inquiry {
   created_at: string;
   user_id: string;
   sample_file_url?: string;
+  sample_files?: Array<{
+    url: string;
+    name: string;
+    size: number;
+  }>;
   supplier_quote?: string;
   admin_feedback?: string;
   profiles: {
@@ -472,19 +477,24 @@ const AdminDashboard = () => {
                    <TableBody>
                      {inquiries.map((inquiry) => (
                        <TableRow key={inquiry.id}>
-                         <TableCell>
-                           {inquiry.sample_file_url ? (
-                             <img 
-                               src={inquiry.sample_file_url} 
-                               alt={inquiry.item_name}
-                               className="w-12 h-12 object-cover rounded-md"
-                             />
-                           ) : (
-                             <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
-                               <span className="text-xs text-muted-foreground">No image</span>
-                             </div>
-                           )}
-                         </TableCell>
+                          <TableCell>
+                            {inquiry.sample_files && inquiry.sample_files.length > 0 ? (
+                              <img 
+                                src={`https://enxrledmmhrmbxifnjbu.supabase.co/storage/v1/object/public/samples/${inquiry.sample_files[0].url}`}
+                                alt={inquiry.item_name}
+                                className="w-12 h-12 object-cover rounded-md"
+                                 onError={(e) => {
+                                   (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                   const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                                   if (nextElement) nextElement.style.display = 'flex';
+                                 }}
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
+                                <span className="text-xs text-muted-foreground">No image</span>
+                              </div>
+                            )}
+                          </TableCell>
                          <TableCell className="font-medium">{inquiry.item_name}</TableCell>
                          <TableCell>{inquiry.profiles?.full_name || 'N/A'}</TableCell>
                          <TableCell>{inquiry.quantity}</TableCell>
@@ -529,19 +539,28 @@ const AdminDashboard = () => {
                                     <strong>Quantity:</strong> {selectedInquiry.quantity}
                                   </div>
 
-                                  {selectedInquiry.sample_file_url && (
-                                    <div>
-                                      <strong>Sample File:</strong>
-                                      <a 
-                                        href={selectedInquiry.sample_file_url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="text-primary hover:underline ml-2"
-                                      >
-                                        View File
-                                      </a>
-                                    </div>
-                                  )}
+                                   {selectedInquiry.sample_files && selectedInquiry.sample_files.length > 0 && (
+                                     <div>
+                                       <strong>Sample Files:</strong>
+                                       <div className="mt-2 space-y-2">
+                                         {selectedInquiry.sample_files.map((file, index) => (
+                                           <div key={index} className="flex items-center gap-2">
+                                             <a 
+                                               href={`https://enxrledmmhrmbxifnjbu.supabase.co/storage/v1/object/public/samples/${file.url}`}
+                                               target="_blank" 
+                                               rel="noopener noreferrer"
+                                               className="text-primary hover:underline"
+                                             >
+                                               {file.name}
+                                             </a>
+                                             <span className="text-xs text-muted-foreground">
+                                               ({Math.round(file.size / 1024)} KB)
+                                             </span>
+                                           </div>
+                                         ))}
+                                       </div>
+                                     </div>
+                                   )}
 
                                   <div className="space-y-2">
                                     <Label htmlFor="supplierQuote">Supplier Quote</Label>
