@@ -42,8 +42,6 @@ interface Inquiry {
   sample_file_url?: string;
   supplier_quote?: string;
   admin_feedback?: string;
-  processing_fee_naira?: number;
-  processing_fee_dollar?: number;
   profiles: {
     full_name: string;
     phone?: string;
@@ -77,8 +75,6 @@ const AdminDashboard = () => {
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [supplierQuote, setSupplierQuote] = useState("");
   const [adminFeedback, setAdminFeedback] = useState("");
-  const [processingFeeNaira, setProcessingFeeNaira] = useState("");
-  const [processingFeeDollar, setProcessingFeeDollar] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   const navigate = useNavigate();
@@ -253,8 +249,6 @@ const AdminDashboard = () => {
     if (action === 'approve') {
       updates.supplier_quote = supplierQuote;
       updates.admin_feedback = adminFeedback;
-      if (processingFeeNaira) updates.processing_fee_naira = parseInt(processingFeeNaira) * 100; // Convert to kobo
-      if (processingFeeDollar) updates.processing_fee_dollar = parseInt(processingFeeDollar) * 100; // Convert to cents
     }
 
     const { error } = await supabase
@@ -292,8 +286,6 @@ const AdminDashboard = () => {
     setSelectedInquiry(null);
     setSupplierQuote("");
     setAdminFeedback("");
-    setProcessingFeeNaira("");
-    setProcessingFeeDollar("");
     await fetchData();
   };
 
@@ -512,8 +504,6 @@ const AdminDashboard = () => {
                                   setSelectedInquiry(inquiry);
                                   setSupplierQuote(inquiry.supplier_quote || "");
                                   setAdminFeedback(inquiry.admin_feedback || "");
-                                  setProcessingFeeNaira(inquiry.processing_fee_naira ? (inquiry.processing_fee_naira / 100).toString() : "");
-                                  setProcessingFeeDollar(inquiry.processing_fee_dollar ? (inquiry.processing_fee_dollar / 100).toString() : "");
                                 }}
                               >
                                 <Eye className="h-4 w-4 mr-2" />

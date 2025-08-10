@@ -405,7 +405,7 @@ const InquiryForm = () => {
                   disabled={submitting || !itemName || !description}
                   className="min-w-32"
                 >
-                  {submitting ? "Submitting..." : "Submit Inquiry"}
+                  {submitting ? "Processing..." : "Pay ₦1,000"}
                 </Button>
               </div>
 
