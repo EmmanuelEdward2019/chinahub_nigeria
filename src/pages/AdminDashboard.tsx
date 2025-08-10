@@ -12,6 +12,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { 
   Users, 
   FileText, 
   DollarSign, 
@@ -81,6 +90,9 @@ const AdminDashboard = () => {
   const [supplierQuote, setSupplierQuote] = useState("");
   const [adminFeedback, setAdminFeedback] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [currentInquiriesPage, setCurrentInquiriesPage] = useState(1);
+  const [totalInquiries, setTotalInquiries] = useState(0);
+  const inquiriesPerPage = 10;
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -122,6 +134,12 @@ const AdminDashboard = () => {
     checkAdminAccess();
   }, [navigate, toast]);
 
+  useEffect(() => {
+    if (isAdmin) {
+      fetchData();
+    }
+  }, [currentInquiriesPage, isAdmin]);
+
   const fetchData = async () => {
     try {
       console.log('Fetching admin data...');
@@ -144,9 +162,16 @@ const AdminDashboard = () => {
         return;
       }
 
-      // Now fetch with profiles using a manual join approach
+      // Get total count for pagination
+      setTotalInquiries(inquiriesTest.data?.length || 0);
+
+      // Fetch paginated inquiries with profiles
+      const startIndex = (currentInquiriesPage - 1) * inquiriesPerPage;
+      const endIndex = startIndex + inquiriesPerPage;
+      const paginatedInquiries = inquiriesTest.data?.slice(startIndex, endIndex) || [];
+
       const inquiriesWithProfiles = [];
-      for (const inquiry of inquiriesTest.data || []) {
+      for (const inquiry of paginatedInquiries) {
         const profileResponse = await supabase
           .from('profiles')
           .select('full_name, phone, country')
@@ -610,10 +635,60 @@ const AdminDashboard = () => {
                       </TableRow>
                     ))}
                   </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                 </Table>
+
+                 {/* Inquiries Pagination */}
+                 {totalInquiries > inquiriesPerPage && (
+                   <div className="mt-4">
+                     <Pagination>
+                       <PaginationContent>
+                         <PaginationItem>
+                           <PaginationPrevious 
+                             href="#"
+                             onClick={(e) => {
+                               e.preventDefault();
+                               if (currentInquiriesPage > 1) {
+                                 setCurrentInquiriesPage(currentInquiriesPage - 1);
+                               }
+                             }}
+                             className={currentInquiriesPage === 1 ? "pointer-events-none opacity-50" : ""}
+                           />
+                         </PaginationItem>
+                         
+                         {Array.from({ length: Math.ceil(totalInquiries / inquiriesPerPage) }, (_, i) => i + 1).map((pageNum) => (
+                           <PaginationItem key={pageNum}>
+                             <PaginationLink
+                               href="#"
+                               onClick={(e) => {
+                                 e.preventDefault();
+                                 setCurrentInquiriesPage(pageNum);
+                               }}
+                               isActive={currentInquiriesPage === pageNum}
+                             >
+                               {pageNum}
+                             </PaginationLink>
+                           </PaginationItem>
+                         ))}
+                         
+                         <PaginationItem>
+                           <PaginationNext 
+                             href="#"
+                             onClick={(e) => {
+                               e.preventDefault();
+                               if (currentInquiriesPage < Math.ceil(totalInquiries / inquiriesPerPage)) {
+                                 setCurrentInquiriesPage(currentInquiriesPage + 1);
+                               }
+                             }}
+                             className={currentInquiriesPage === Math.ceil(totalInquiries / inquiriesPerPage) ? "pointer-events-none opacity-50" : ""}
+                           />
+                         </PaginationItem>
+                       </PaginationContent>
+                     </Pagination>
+                   </div>
+                 )}
+               </CardContent>
+             </Card>
+           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
             <UserManagement />

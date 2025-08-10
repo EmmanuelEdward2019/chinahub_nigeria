@@ -6,6 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { 
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
 import { Users, Eye, Search, Wallet } from "lucide-react";
 
@@ -43,6 +52,8 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 10;
   
   const { toast } = useToast();
 
@@ -52,6 +63,7 @@ const UserManagement = () => {
 
   useEffect(() => {
     filterUsers();
+    setCurrentPage(1); // Reset to first page when search term changes
   }, [users, searchTerm]);
 
   const fetchUsers = async () => {
@@ -195,7 +207,9 @@ const UserManagement = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredUsers.map((user) => (
+            {filteredUsers
+              .slice((currentPage - 1) * usersPerPage, currentPage * usersPerPage)
+              .map((user) => (
               <TableRow key={user.id}>
                 <TableCell>
                   <div>
@@ -247,6 +261,56 @@ const UserManagement = () => {
         {filteredUsers.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
             {searchTerm ? 'No users found matching your search.' : 'No users found.'}
+          </div>
+        )}
+
+        {/* Users Pagination */}
+        {filteredUsers.length > usersPerPage && (
+          <div className="mt-4">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage > 1) {
+                        setCurrentPage(currentPage - 1);
+                      }
+                    }}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: Math.ceil(filteredUsers.length / usersPerPage) }, (_, i) => i + 1).map((pageNum) => (
+                  <PaginationItem key={pageNum}>
+                    <PaginationLink
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setCurrentPage(pageNum);
+                      }}
+                      isActive={currentPage === pageNum}
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage < Math.ceil(filteredUsers.length / usersPerPage)) {
+                        setCurrentPage(currentPage + 1);
+                      }
+                    }}
+                    className={currentPage === Math.ceil(filteredUsers.length / usersPerPage) ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
         )}
 
