@@ -315,8 +315,8 @@ const Dashboard = () => {
           <p className="text-muted-foreground">Manage your product sourcing requests and track your progress.</p>
         </div>
 
-        {/* Recent Notifications Card - Only unread or latest */}
-        {(notifications.filter(n => !n.read).length > 0 || notifications.slice(0, 2).length > 0) && (
+        {/* Recent Notifications Card - Only unread notifications and new inquiries */}
+        {notifications.filter(n => !n.read).length > 0 && (
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -324,18 +324,15 @@ const Dashboard = () => {
                 Recent Notifications
               </CardTitle>
               <CardDescription>
-                Your latest updates - click the bell icon above for all notifications
+                Unread notifications and new inquiries - click the bell icon above for all notifications
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {(notifications.filter(n => !n.read).length > 0 
-                  ? notifications.filter(n => !n.read).slice(0, 3)
-                  : notifications.slice(0, 2)
-                ).map((notification) => (
+                {notifications.filter(n => !n.read).slice(0, 3).map((notification) => (
                   <div 
                     key={notification.id} 
-                    className={`p-4 border rounded-lg ${!notification.read ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'}`}
+                    className="p-4 border rounded-lg bg-blue-50 border-blue-200"
                   >
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-medium text-sm">{notification.title}</h4>
@@ -343,11 +340,9 @@ const Dashboard = () => {
                         <Badge variant={notification.type === 'success' ? 'default' : notification.type === 'warning' ? 'destructive' : 'secondary'}>
                           {notification.type}
                         </Badge>
-                        {!notification.read && (
-                          <Badge variant="outline" className="text-xs">
-                            New
-                          </Badge>
-                        )}
+                        <Badge variant="outline" className="text-xs">
+                          New
+                        </Badge>
                       </div>
                     </div>
                     <p className="text-sm text-muted-foreground mb-2">{notification.message}</p>
@@ -359,7 +354,7 @@ const Dashboard = () => {
               </div>
               {notifications.filter(n => !n.read).length > 3 && (
                 <p className="text-xs text-muted-foreground text-center mt-3">
-                  Click the bell icon above to see all notifications
+                  +{notifications.filter(n => !n.read).length - 3} more unread notifications - click the bell icon above to view all
                 </p>
               )}
             </CardContent>
