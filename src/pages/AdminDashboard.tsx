@@ -39,6 +39,8 @@ import ProfileSettings from "@/components/ProfileSettings";
 import PaymentPlansManager from "@/components/PaymentPlansManager";
 import UserManagement from "@/components/UserManagement";
 import NotificationSystem from "@/components/NotificationSystem";
+import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
 
 interface Inquiry {
   id: string;
@@ -346,14 +348,15 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
-      {/* Header */}
+      <Navigation user={user} />
+      
+      {/* Admin-specific header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <img src="/lovable-uploads/0bdcaaca-e82b-4c23-9eb4-934cd15493e9.png" alt="ChinaHub Logo" className="h-6 sm:h-8 w-auto" />
               <h1 className={`font-bold text-primary ${isMobile ? 'text-sm' : 'text-xl'}`}>
-                {isMobile ? 'Admin' : 'Admin Dashboard'}
+                {isMobile ? 'Admin Dashboard' : 'Admin Dashboard'}
               </h1>
             </div>
             <div className="flex items-center space-x-1 sm:space-x-4">
@@ -402,6 +405,7 @@ const AdminDashboard = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* ... keep existing code (Stats Cards and Tabs sections) */}
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
@@ -751,6 +755,8 @@ const AdminDashboard = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      <Footer />
     </div>
   );
 };
