@@ -425,6 +425,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      deduct_inquiry_fee: {
+        Args: {
+          p_user_id: string
+          p_amount: number
+          p_currency: string
+          p_inquiry_id: string
+        }
+        Returns: Json
+      }
       deduct_wallet_balance: {
         Args: { user_id: string; amount: number; currency: string }
         Returns: undefined
