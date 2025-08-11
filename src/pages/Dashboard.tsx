@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Wallet, Package, FileText, LogOut, PlusCircle, Bell, Settings, MessageSquare, DollarSign } from "lucide-react";
+import { Wallet, Package, FileText, LogOut, PlusCircle, Bell, Settings, MessageSquare, DollarSign, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import WalletTopup from "@/components/WalletTopup";
 import ProfileSettings from "@/components/ProfileSettings";
+import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
 
 interface Profile {
   id: string;
@@ -237,12 +239,14 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
-      {/* Header */}
+      <Navigation user={user} />
+      
+      {/* Dashboard-specific header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 overflow-x-auto">
             <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
-              <img src="/lovable-uploads/0bdcaaca-e82b-4c23-9eb4-934cd15493e9.png" alt="ChinaHub Logo" className="h-6 md:h-8 w-auto" />
+              <h1 className="text-lg font-semibold">Dashboard</h1>
             </div>
             <div className="flex items-center space-x-1 md:space-x-4 flex-shrink-0">
               {/* Notifications */}
@@ -602,6 +606,8 @@ const Dashboard = () => {
           </DialogContent>
         </Dialog>
       </main>
+      
+      <Footer />
     </div>
   );
 };

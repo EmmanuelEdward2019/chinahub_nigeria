@@ -436,16 +436,8 @@ const InquiryForm = () => {
                     {wallet && wallet.naira_balance < 100000 && (
                       <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                         <p className="text-sm text-red-600 mb-2">
-                          Insufficient balance. Please top up your wallet before submitting.
+                          Insufficient balance. You'll be redirected to payment.
                         </p>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => navigate("/dashboard")}
-                          className="text-blue-600 hover:text-blue-700"
-                        >
-                          Go to Wallet Top-up
-                        </Button>
                       </div>
                     )}
 
@@ -465,11 +457,12 @@ const InquiryForm = () => {
                         Cancel
                       </Button>
                       <Button 
-                        onClick={submitInquiry} 
-                        disabled={submitting || !wallet || wallet.naira_balance < 100000} 
+                        onClick={wallet && wallet.naira_balance >= 100000 ? submitInquiry : () => window.open(`https://paystack.com/pay/chinahub-topup-${user?.id}`, '_blank')}
+                        disabled={submitting} 
                         className="flex-1"
                       >
-                        {submitting ? "Processing..." : "Pay ₦1,000 & Submit"}
+                        {submitting ? "Processing..." : 
+                         wallet && wallet.naira_balance >= 100000 ? "Pay ₦1,000 & Submit" : "Pay ₦1,000"}
                       </Button>
                     </div>
                   </div>

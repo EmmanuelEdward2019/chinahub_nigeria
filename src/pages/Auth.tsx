@@ -78,6 +78,14 @@ const Auth = () => {
         title: "Success",
         description: "Please check your email to verify your account",
       });
+
+      // Clear form and show success
+      setFullName("");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+      setPhone("");
+      setCountry("");
     } catch (error: any) {
       toast({
         title: "Error",
