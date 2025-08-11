@@ -55,7 +55,7 @@ serve(async (req) => {
       .from('transactions')
       .insert({
         user_id,
-        amount: amountInKobo,
+        amount: amount, // Store the original amount in naira, not kobo
         currency,
         transaction_type: 'wallet_topup',
         status: 'pending',

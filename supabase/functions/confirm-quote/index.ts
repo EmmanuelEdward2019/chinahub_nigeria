@@ -169,8 +169,19 @@ const handler = async (req: Request): Promise<Response> => {
         .insert({
           user_id: adminUser.user_id,
           title: 'Quote Confirmed & Payment Processed',
-          message: `User has confirmed the quote for "${inquiry.item_name}" and payment has been processed. You can now proceed with procurement.`,
+          message: `User has confirmed the quote for "${inquiry.item_name}" and payment of ${currency === 'NGN' ? '₦' : '$'}${processingFee.toLocaleString()} has been processed. You can now proceed with procurement.`,
           type: 'success',
+          inquiry_id: inquiry_id
+        });
+      
+      // Also create a transaction notification for admin
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: adminUser.user_id,
+          title: 'Payment Transaction Completed',
+          message: `Processing fee of ${currency === 'NGN' ? '₦' : '$'}${processingFee.toLocaleString()} received for inquiry "${inquiry.item_name}". Reference: QUOTE-${inquiry_id.substring(0, 8)}`,
+          type: 'info',
           inquiry_id: inquiry_id
         });
     }

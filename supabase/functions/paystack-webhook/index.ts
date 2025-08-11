@@ -103,7 +103,21 @@ serve(async (req) => {
         const { error: walletError } = await supabase
           .from('wallets')
           .update({ 
-            naira_balance: supabase.raw(`naira_balance + ${amountInMainUnit}`)
+            naira_balance: supabase.raw(`naira_balance + ${amountInMainUnit}`),
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', transaction.user_id);
+
+        if (walletError) {
+          console.error('Failed to update wallet:', walletError);
+          throw new Error('Failed to update wallet');
+        }
+      } else if (currency === 'USD') {
+        const { error: walletError } = await supabase
+          .from('wallets')
+          .update({ 
+            dollar_balance: supabase.raw(`dollar_balance + ${amountInMainUnit}`),
+            updated_at: new Date().toISOString()
           })
           .eq('user_id', transaction.user_id);
 
@@ -126,9 +140,28 @@ serve(async (req) => {
         .insert({
           user_id: transaction.user_id,
           title: 'Wallet Top-up Successful',
-          message: `Your wallet has been credited with ₦${amountInMainUnit.toLocaleString()}`,
+          message: `Your wallet has been credited with ${currency === 'NGN' ? '₦' : '$'}${amountInMainUnit.toLocaleString()}`,
           type: 'success'
         });
+
+      // Notify admin about the transaction
+      const { data: adminUser } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin')
+        .limit(1)
+        .single();
+
+      if (adminUser) {
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: adminUser.user_id,
+            title: 'Wallet Top-up Received',
+            message: `User wallet credited with ${currency === 'NGN' ? '₦' : '$'}${amountInMainUnit.toLocaleString()}. Reference: ${reference}`,
+            type: 'info'
+          });
+      }
     }
 
     return new Response('OK', { status: 200, headers: corsHeaders });
