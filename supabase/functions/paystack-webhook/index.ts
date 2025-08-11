@@ -71,50 +71,24 @@ serve(async (req) => {
         throw new Error('Failed to update transaction');
       }
 
-      // Update wallet balance
+      // Process wallet topup using the database function
       const amountInMainUnit = Math.round(amount / 100); // Convert from kobo to naira
-      console.log('Updating wallet with amount:', amountInMainUnit, 'Currency:', currency);
+      console.log('Processing wallet topup with amount:', amountInMainUnit, 'Currency:', currency);
       
-      // Get current wallet balance first
-      const { data: currentWallet, error: walletFetchError } = await supabase
-        .from('wallets')
-        .select('naira_balance, dollar_balance')
-        .eq('user_id', transaction.user_id)
-        .single();
+      const { data: result, error: processError } = await supabase
+        .rpc('process_wallet_topup', {
+          p_user_id: transaction.user_id,
+          p_amount: amountInMainUnit,
+          p_currency: currency,
+          p_reference: reference
+        });
 
-      if (walletFetchError) {
-        console.error('Failed to fetch current wallet:', walletFetchError);
-        throw new Error('Failed to fetch current wallet');
+      if (processError) {
+        console.error('Failed to process wallet topup:', processError);
+        throw new Error('Failed to process wallet topup');
       }
 
-      console.log('Current wallet balance:', currentWallet);
-
-      // Update wallet with new balance
-      const newBalance = currency === 'NGN' 
-        ? currentWallet.naira_balance + amountInMainUnit
-        : currentWallet.dollar_balance + amountInMainUnit;
-
-      const updateData = currency === 'NGN' 
-        ? { 
-            naira_balance: newBalance,
-            updated_at: new Date().toISOString()
-          }
-        : { 
-            dollar_balance: newBalance,
-            updated_at: new Date().toISOString()
-          };
-
-      const { error: walletError } = await supabase
-        .from('wallets')
-        .update(updateData)
-        .eq('user_id', transaction.user_id);
-
-      if (walletError) {
-        console.error('Failed to update wallet:', walletError);
-        throw new Error('Failed to update wallet');
-      }
-
-      console.log('Wallet updated successfully. New balance:', newBalance);
+      console.log('Wallet topup processed successfully:', result);
 
       console.log('Wallet topped up successfully:', {
         user_id: transaction.user_id,

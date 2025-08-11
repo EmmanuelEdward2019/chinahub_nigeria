@@ -436,6 +436,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      process_wallet_topup: {
+        Args: {
+          p_user_id: string
+          p_amount: number
+          p_currency: string
+          p_reference: string
+        }
+        Returns: Json
+      }
       setup_admin_user: {
         Args: { admin_email: string }
         Returns: undefined
