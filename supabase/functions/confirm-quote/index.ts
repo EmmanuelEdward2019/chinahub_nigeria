@@ -1,37 +1,93 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.52.1";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-);
+async function getInquiryDetails(supabase: any, inquiryId: string, userId: string) {
+  const { data: inquiry, error } = await supabase
+    .from('inquiries')
+    .select('*')
+    .eq('id', inquiryId)
+    .eq('user_id', userId)
+    .maybeSingle();
 
-interface ConfirmQuoteRequest {
-  inquiry_id: string;
-  currency: 'NGN' | 'USD';
+  if (error) {
+    console.error('Inquiry query error:', error);
+    throw new Error('Database error');
+  }
+
+  if (!inquiry) {
+    throw new Error('Inquiry not found');
+  }
+
+  if (inquiry.payment_status === 'paid') {
+    throw new Error('Quote already confirmed');
+  }
+
+  if (inquiry.status !== 'approved') {
+    throw new Error('Inquiry not approved yet');
+  }
+
+  return inquiry;
 }
 
-const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
+async function deductProcessingFee(supabase: any, userId: string, amount: number, currency: string, inquiryId: string) {
+  console.log('Deducting processing fee using database function...');
+  
+  const { data: result, error } = await supabase
+    .rpc('deduct_inquiry_fee', {
+      p_user_id: userId,
+      p_amount: amount,
+      p_currency: currency,
+      p_inquiry_id: inquiryId
+    });
+
+  if (error) {
+    console.error('Processing fee deduction error:', error);
+    throw error;
+  }
+
+  if (!result?.success) {
+    throw new Error(result?.error || 'Processing fee deduction failed');
+  }
+
+  return result;
+}
+
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { inquiry_id, currency }: ConfirmQuoteRequest = await req.json();
-
-    // Get the authorization header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
+    console.log('Processing quote confirmation...');
+    
+    // Environment check
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase configuration');
     }
 
-    // Get user from auth header
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Parse request
+    const { inquiry_id, currency } = await req.json();
+    
+    if (!inquiry_id || !currency) {
+      throw new Error('Missing required parameters');
+    }
+
+    // Get auth
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Missing authorization header');
+    }
+
     const { data: { user }, error: authError } = await supabase.auth.getUser(
       authHeader.replace('Bearer ', '')
     );
@@ -40,72 +96,21 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Unauthorized');
     }
 
-    console.log('Confirming quote for inquiry:', inquiry_id, 'by user:', user.id);
+    console.log('User authenticated:', user.id);
 
-    // Get inquiry details with processing fees
-    const { data: inquiry, error: inquiryError } = await supabase
-      .from('inquiries')
-      .select('*')
-      .eq('id', inquiry_id)
-      .eq('user_id', user.id)
-      .eq('status', 'approved')
-      .single();
-
-    if (inquiryError || !inquiry) {
-      throw new Error('Inquiry not found or not approved');
-    }
-
-    // Check if already confirmed
-    if (inquiry.quote_payment_processed) {
-      throw new Error('Quote already confirmed and paid');
-    }
-
-    // Get processing fee based on currency
-    const processingFee = currency === 'NGN' 
-      ? inquiry.processing_fee_naira 
-      : inquiry.processing_fee_dollar;
-
+    // Get inquiry details
+    const inquiry = await getInquiryDetails(supabase, inquiry_id, user.id);
+    
+    // Get processing fee
+    const processingFee = currency === 'NGN' ? inquiry.processing_fee_naira : inquiry.processing_fee_dollar;
+    
     if (!processingFee) {
-      throw new Error('No processing fee set for this currency');
+      throw new Error('Processing fee not set for this inquiry');
     }
 
-    // Get user's wallet
-    const { data: wallet, error: walletError } = await supabase
-      .from('wallets')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
-
-    if (walletError || !wallet) {
-      throw new Error('Wallet not found');
-    }
-
-    // Check sufficient balance
-    const currentBalance = currency === 'NGN' ? wallet.naira_balance : wallet.dollar_balance;
-    if (currentBalance < processingFee) {
-      throw new Error('Insufficient wallet balance');
-    }
-
-    console.log('Processing payment:', {
-      processingFee,
-      currentBalance,
-      currency
-    });
-
-    // Start transaction - deduct from wallet
-    const walletUpdate = currency === 'NGN' 
-      ? { naira_balance: wallet.naira_balance - processingFee }
-      : { dollar_balance: wallet.dollar_balance - processingFee };
-
-    const { error: walletUpdateError } = await supabase
-      .from('wallets')
-      .update(walletUpdate)
-      .eq('user_id', user.id);
-
-    if (walletUpdateError) {
-      throw new Error('Failed to deduct from wallet');
-    }
-
+    // Deduct processing fee using database function
+    const feeResult = await deductProcessingFee(supabase, user.id, processingFee, currency, inquiry_id);
+    
     // Update inquiry status
     const { error: inquiryUpdateError } = await supabase
       .from('inquiries')
@@ -117,77 +122,30 @@ const handler = async (req: Request): Promise<Response> => {
       .eq('id', inquiry_id);
 
     if (inquiryUpdateError) {
+      console.error('Inquiry update error:', inquiryUpdateError);
       throw new Error('Failed to update inquiry status');
     }
 
-    // Create order record
-    const { error: orderError } = await supabase
+    // Create order
+    const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
         user_id: user.id,
         inquiry_id: inquiry_id,
         amount: processingFee,
         currency: currency,
-        status: 'completed',
+        status: 'pending',
         payment_method: 'wallet'
-      });
-
-    if (orderError) {
-      console.error('Failed to create order record:', orderError);
-      // Don't fail the transaction for this
-    }
-
-    // Create transaction record
-    const { error: transactionError } = await supabase
-      .from('transactions')
-      .insert({
-        user_id: user.id,
-        inquiry_id: inquiry_id,
-        transaction_type: 'payment',
-        amount: processingFee,
-        currency: currency,
-        status: 'completed',
-        reference: `QUOTE-${inquiry_id.substring(0, 8)}`
-      });
-
-    if (transactionError) {
-      console.error('Failed to create transaction record:', transactionError);
-      // Don't fail the transaction for this
-    }
-
-    // Create notification for admin
-    const { data: adminUser } = await supabase
-      .from('user_roles')
-      .select('user_id')
-      .eq('role', 'admin')
-      .limit(1)
+      })
+      .select()
       .single();
 
-    if (adminUser) {
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: adminUser.user_id,
-          title: 'Quote Confirmed & Payment Processed',
-          message: `User has confirmed the quote for "${inquiry.item_name}" and payment of ${currency === 'NGN' ? '₦' : '$'}${processingFee.toLocaleString()} has been processed. You can now proceed with procurement.`,
-          type: 'success',
-          inquiry_id: inquiry_id
-        });
-      
-      // Also create a transaction notification for admin
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: adminUser.user_id,
-          title: 'Payment Transaction Completed',
-          message: `Processing fee of ${currency === 'NGN' ? '₦' : '$'}${processingFee.toLocaleString()} received for inquiry "${inquiry.item_name}". Reference: QUOTE-${inquiry_id.substring(0, 8)}`,
-          type: 'info',
-          inquiry_id: inquiry_id
-        });
+    if (orderError) {
+      console.error('Order creation error:', orderError);
     }
 
-    // Create notification for user
-    await supabase
+    // Create notifications
+    const { error: userNotifError } = await supabase
       .from('notifications')
       .insert({
         user_id: user.id,
@@ -197,32 +155,49 @@ const handler = async (req: Request): Promise<Response> => {
         inquiry_id: inquiry_id
       });
 
+    if (userNotifError) {
+      console.error('User notification error:', userNotifError);
+    }
+
+    // Admin notification
+    const { data: adminUser } = await supabase
+      .from('user_roles')
+      .select('user_id')
+      .eq('role', 'admin')
+      .limit(1)
+      .maybeSingle();
+
+    if (adminUser) {
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: adminUser.user_id,
+          title: 'Quote Confirmed & Payment Processed',
+          message: `User has confirmed the quote for "${inquiry.item_name}" and payment of ${currency === 'NGN' ? '₦' : '$'}${processingFee.toLocaleString()} has been processed.`,
+          type: 'success',
+          inquiry_id: inquiry_id
+        });
+    }
+
     console.log('Quote confirmation completed successfully');
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Quote confirmed and payment processed successfully' 
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-        },
-      }
-    );
+    return new Response(JSON.stringify({ 
+      success: true, 
+      message: 'Quote confirmed and payment processed successfully',
+      order_id: order?.id,
+      processing_fee: processingFee,
+      new_balance: feeResult.new_balance
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error: any) {
-    console.error('Error in confirm-quote function:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      }
-    );
+    console.error('Quote confirmation error:', error);
+    return new Response(JSON.stringify({ 
+      error: error.message || 'Quote confirmation failed' 
+    }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
-};
-
-serve(handler);
+});
