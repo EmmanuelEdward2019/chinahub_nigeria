@@ -232,6 +232,38 @@ const InquiryForm = () => {
     }
   };
 
+  const handleTopUp = async () => {
+    if (!user) return;
+    
+    setSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('paystack-topup', {
+        body: {
+          amount: 1000, // ₦1,000
+          currency: 'NGN',
+          user_id: user.id,
+          redirect_url: window.location.href
+        }
+      });
+
+      if (error) throw error;
+
+      // Redirect to Paystack checkout
+      if (data.authorization_url) {
+        window.location.href = data.authorization_url;
+      }
+    } catch (error) {
+      console.error('Error initiating payment:', error);
+      toast({
+        title: "Payment Error",
+        description: "Failed to initiate payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -457,7 +489,7 @@ const InquiryForm = () => {
                         Cancel
                       </Button>
                       <Button 
-                        onClick={wallet && wallet.naira_balance >= 100000 ? submitInquiry : () => window.open(`https://paystack.com/pay/chinahub-topup-${user?.id}`, '_blank')}
+                        onClick={wallet && wallet.naira_balance >= 100000 ? submitInquiry : handleTopUp}
                         disabled={submitting} 
                         className="flex-1"
                       >
