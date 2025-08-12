@@ -31,6 +31,16 @@ const WalletTopup = ({ userId, onSuccess }: WalletTopupProps) => {
       return;
     }
 
+    const minAmount = getMinAmount();
+    if (parseFloat(amount) < minAmount) {
+      toast({
+        title: "Error",
+        description: `Minimum amount is ${getCurrencySymbol()}${minAmount}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const paymentData = {
@@ -48,8 +58,12 @@ const WalletTopup = ({ userId, onSuccess }: WalletTopupProps) => {
 
         if (error) throw error;
 
-        // Open Paystack checkout in a new tab
-        window.open(data.authorization_url, '_blank');
+        if (!data.authorization_url) {
+          throw new Error("No payment URL received from Paystack");
+        }
+
+        // Redirect to Paystack checkout in the same tab
+        window.location.href = data.authorization_url;
       } else {
         // Use PayPal for USD payments
         const { data, error } = await supabase.functions.invoke('paypal-topup', {
@@ -58,25 +72,26 @@ const WalletTopup = ({ userId, onSuccess }: WalletTopupProps) => {
 
         if (error) throw error;
 
-        // Open PayPal checkout in a new tab
-        window.open(data.approval_url, '_blank');
+        if (!data.approval_url) {
+          throw new Error("No payment URL received from PayPal");
+        }
+
+        // Redirect to PayPal checkout in the same tab
+        window.location.href = data.approval_url;
       }
 
       toast({
-        title: "Payment Initiated",
-        description: "Please complete the payment in the new tab",
+        title: "Redirecting to Payment",
+        description: "Please wait while we redirect you to the payment gateway...",
       });
 
-      setIsOpen(false);
-      setAmount("");
-      onSuccess();
     } catch (error: any) {
+      console.error('Payment error:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to initiate payment",
+        title: "Payment Error",
+        description: error.message || "Failed to initiate payment. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };

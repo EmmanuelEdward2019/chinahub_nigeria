@@ -141,12 +141,15 @@ const InquiryForm = () => {
 
     setSubmitting(true);
     try {
-      // Check if user has sufficient balance (₦1000)
-      const requiredAmount = 100000; // ₦1000 in kobo
-      if (wallet.naira_balance < requiredAmount) {
+      const requiredAmount = currency === "NGN" ? (inquirySettings?.default_fee_naira || 100000) : (inquirySettings?.default_fee_dollar || 200); // ₦1000 in kobo or $2 in cents
+      const requiredCurrency = currency === "NGN" ? "NGN" : "USD";
+      
+      // Check if user has sufficient balance
+      const currentBalance = currency === "NGN" ? wallet.naira_balance : wallet.dollar_balance;
+      if (currentBalance < requiredAmount) {
         toast({
           title: "Insufficient balance",
-          description: "You need at least ₦1,000 to submit an inquiry. Please top up your wallet.",
+          description: `You need at least ${currency === "NGN" ? "₦" : "$"}${(requiredAmount / 100).toLocaleString()} to submit an inquiry. Please top up your wallet.`,
           variant: "destructive",
         });
         setSubmitting(false);
@@ -173,32 +176,8 @@ const InquiryForm = () => {
         });
       }
 
-      // Create transaction record
-      const { error: transactionError } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: user.id,
-          amount: requiredAmount,
-          currency: 'NGN',
-          transaction_type: 'inquiry_fee',
-          status: 'completed'
-        });
-
-      if (transactionError) throw transactionError;
-
-      // Deduct from wallet balance (this will need a database function or edge function)
-      const { error: walletError } = await supabase.rpc('deduct_wallet_balance', {
-        user_id: user.id,
-        amount: requiredAmount,
-        currency: 'naira'
-      });
-
-      if (walletError) {
-        // If wallet deduction fails, we should rollback the transaction
-        throw walletError;
-      }
-
-      const { error: inquiryError } = await supabase
+      // Create inquiry first to get the ID
+      const { data: inquiry, error: inquiryError } = await supabase
         .from('inquiries')
         .insert({
           user_id: user.id,
@@ -208,14 +187,31 @@ const InquiryForm = () => {
           quantity: parseInt(quantity) || 1,
           sample_files: uploadedFiles,
           payment_status: 'paid',
-          processing_fee_naira: requiredAmount
-        });
+          processing_fee_naira: currency === "NGN" ? requiredAmount : null,
+          processing_fee_dollar: currency === "USD" ? requiredAmount : null
+        })
+        .select()
+        .single();
 
       if (inquiryError) throw inquiryError;
 
+      // Process the inquiry fee using the edge function
+      const { error: feeError } = await supabase.functions.invoke('process-inquiry-fee', {
+        body: {
+          inquiry_id: inquiry.id,
+          currency: requiredCurrency
+        }
+      });
+
+      if (feeError) {
+        // If fee processing fails, delete the inquiry
+        await supabase.from('inquiries').delete().eq('id', inquiry.id);
+        throw feeError;
+      }
+
       toast({
         title: "Inquiry submitted successfully!",
-        description: "Payment of ₦1,000 has been deducted from your wallet. We'll review your request and get back to you with a quote within 3-5 business days.",
+        description: `Payment of ${currency === "NGN" ? "₦" : "$"}${(requiredAmount / 100).toLocaleString()} has been deducted from your wallet. We'll review your request and get back to you with a quote within 3-5 business days.`,
       });
 
       navigate("/dashboard");
@@ -223,7 +219,7 @@ const InquiryForm = () => {
       console.error('Error submitting inquiry:', error);
       toast({
         title: "Error submitting inquiry",
-        description: "Please try again later",
+        description: error.message || "Please try again later",
         variant: "destructive",
       });
     } finally {
