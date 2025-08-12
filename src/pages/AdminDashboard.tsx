@@ -233,12 +233,17 @@ const AdminDashboard = () => {
       setNotifications(notificationsResponse.data || []);
 
       const totalWalletTopups = walletDataResponse.data?.length || 0;
+      
+      // Calculate actual revenue from completed wallet top-ups only
       const revenue = walletDataResponse.data?.reduce((sum, transaction) => {
-        if (transaction.currency === 'NGN') {
-          return sum + transaction.amount;
-        } else if (transaction.currency === 'USD') {
-          // Convert USD to Naira for display (approximate rate: 1 USD = 1600 NGN)
-          return sum + (transaction.amount * 1600);
+        // Only count wallet top-ups, not inquiry fees
+        if (transaction.transaction_type === 'wallet_topup') {
+          if (transaction.currency === 'NGN') {
+            return sum + transaction.amount;
+          } else if (transaction.currency === 'USD') {
+            // Convert USD to Naira for display (approximate rate: 1 USD = 1600 NGN)
+            return sum + (transaction.amount * 1600);
+          }
         }
         return sum;
       }, 0) || 0;

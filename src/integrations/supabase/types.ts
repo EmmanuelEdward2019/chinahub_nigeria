@@ -438,6 +438,10 @@ export type Database = {
         Args: { user_id: string; amount: number; currency: string }
         Returns: undefined
       }
+      fix_all_wallet_balances: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       has_role: {
         Args: {
           _user_id: string
