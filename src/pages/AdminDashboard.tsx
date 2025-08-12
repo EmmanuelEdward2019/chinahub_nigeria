@@ -226,7 +226,7 @@ const AdminDashboard = () => {
         supabase
           .from('transactions')
           .select('amount, currency, transaction_type')
-          .in('transaction_type', ['wallet_topup', 'topup'])
+          .eq('transaction_type', 'wallet_topup')
           .eq('status', 'completed')
       ]);
       
@@ -234,8 +234,13 @@ const AdminDashboard = () => {
 
       const totalWalletTopups = walletDataResponse.data?.length || 0;
       const revenue = walletDataResponse.data?.reduce((sum, transaction) => {
-        // Amount is already in main currency units (naira/dollars), not kobo/cents
-        return sum + transaction.amount;
+        if (transaction.currency === 'NGN') {
+          return sum + transaction.amount;
+        } else if (transaction.currency === 'USD') {
+          // Convert USD to Naira for display (approximate rate: 1 USD = 1600 NGN)
+          return sum + (transaction.amount * 1600);
+        }
+        return sum;
       }, 0) || 0;
 
       setStats({

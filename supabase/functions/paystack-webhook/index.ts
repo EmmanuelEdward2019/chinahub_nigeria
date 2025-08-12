@@ -99,6 +99,7 @@ serve(async (req) => {
 
     const { reference, amount, currency } = event.data;
     const amountInMainUnit = Math.round(amount / 100); // Convert from kobo to naira
+    console.log(`Processing payment: ${amountInMainUnit} ${currency} for reference ${reference}`);
 
     // Find transaction
     const { data: transaction, error: transactionError } = await supabase
