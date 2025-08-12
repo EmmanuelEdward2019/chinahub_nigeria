@@ -38,6 +38,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import ProfileSettings from "@/components/ProfileSettings";
 import PaymentPlansManager from "@/components/PaymentPlansManager";
 import UserManagement from "@/components/UserManagement";
+import TransactionHistory from "@/components/TransactionHistory";
 import NotificationSystem from "@/components/NotificationSystem";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -718,7 +719,7 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <Card>
                 <CardHeader>
                   <CardTitle>Inquiry Statistics</CardTitle>
@@ -763,6 +764,9 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* All Platform Transactions */}
+            <TransactionHistory isAdmin={true} />
           </TabsContent>
         </Tabs>
       </main>

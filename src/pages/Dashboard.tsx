@@ -10,6 +10,7 @@ import { Wallet, Package, FileText, LogOut, PlusCircle, Bell, Settings, MessageS
 import { useToast } from "@/hooks/use-toast";
 import WalletTopup from "@/components/WalletTopup";
 import ProfileSettings from "@/components/ProfileSettings";
+import TransactionHistory from "@/components/TransactionHistory";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 
@@ -412,6 +413,11 @@ const Dashboard = () => {
               </p>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Transaction History */}
+        <div className="mb-8">
+          <TransactionHistory userId={user?.id} currency={currency} />
         </div>
 
         {/* Quick Actions */}
