@@ -1,10 +1,63 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+async function verifyPaystackSignature(body: string, signature: string, secret: string): Promise<boolean> {
+  try {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(secret),
+      { name: "HMAC", hash: "SHA-512" },
+      false,
+      ["sign"]
+    );
+    
+    const computedSignature = await crypto.subtle.sign("HMAC", key, encoder.encode(body));
+    const computedHex = Array.from(new Uint8Array(computedSignature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    
+    return signature === computedHex;
+  } catch (error) {
+    console.error('Signature verification failed:', error);
+    return false;
+  }
+}
+
+async function verifyTransactionWithPaystack(reference: string, paystackSecret: string): Promise<any> {
+  try {
+    console.log(`Verifying transaction ${reference} with Paystack...`);
+    
+    const response = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+      headers: {
+        'Authorization': `Bearer ${paystackSecret}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Paystack API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('Paystack verification result:', result);
+    
+    if (!result.status || result.data.status !== 'success') {
+      throw new Error('Transaction not successful on Paystack');
+    }
+
+    return result.data;
+  } catch (error) {
+    console.error('Paystack verification failed:', error);
+    throw error;
+  }
+}
 
 async function processWalletTopup(supabase: any, transaction: any, amount: number, currency: string, reference: string) {
   console.log('Starting wallet topup process...');
@@ -89,15 +142,31 @@ serve(async (req) => {
     // Environment check
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const paystackSecret = Deno.env.get('PAYSTACK_SECRET_KEY');
     
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing Supabase configuration');
+    if (!supabaseUrl || !supabaseKey || !paystackSecret) {
+      throw new Error('Missing required configuration');
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     // Parse webhook data
     const body = await req.text();
+    const signature = req.headers.get('x-paystack-signature');
+    
+    // CRITICAL: Verify webhook signature for security
+    if (!signature) {
+      console.error('Missing Paystack signature');
+      throw new Error('Unauthorized: Missing signature');
+    }
+    
+    const isValidSignature = await verifyPaystackSignature(body, signature, paystackSecret);
+    if (!isValidSignature) {
+      console.error('Invalid Paystack signature');
+      throw new Error('Unauthorized: Invalid signature');
+    }
+    
+    console.log('Webhook signature verified successfully');
     const event = JSON.parse(body);
     
     console.log('Event type:', event.event);
@@ -111,6 +180,22 @@ serve(async (req) => {
     const { reference, amount, currency } = event.data;
     const amountInMainUnit = Math.round(amount / 100); // Convert from kobo to naira
     console.log(`Processing payment: ${amountInMainUnit} ${currency} for reference ${reference}`);
+    
+    // CRITICAL: Verify transaction directly with Paystack before processing
+    const paystackData = await verifyTransactionWithPaystack(reference, paystackSecret);
+    
+    // Validate amounts match between webhook and Paystack API
+    const paystackAmount = Math.round(paystackData.amount / 100);
+    if (paystackAmount !== amountInMainUnit) {
+      console.error(`Amount mismatch: Webhook=${amountInMainUnit}, Paystack=${paystackAmount}`);
+      throw new Error('Amount verification failed');
+    }
+    
+    // Validate currency matches
+    if (paystackData.currency !== currency) {
+      console.error(`Currency mismatch: Webhook=${currency}, Paystack=${paystackData.currency}`);
+      throw new Error('Currency verification failed');
+    }
     
     // Validate amount is reasonable (between ₦10 and ₦10,000,000)
     if (amountInMainUnit < 10 || amountInMainUnit > 10000000) {
@@ -138,6 +223,12 @@ serve(async (req) => {
     if (transaction.status === 'completed') {
       console.log('Transaction already processed');
       return new Response('OK', { headers: corsHeaders });
+    }
+    
+    // Validate transaction amount matches what we expect
+    if (transaction.amount !== amountInMainUnit) {
+      console.error(`Transaction amount mismatch: DB=${transaction.amount}, Paystack=${amountInMainUnit}`);
+      throw new Error('Transaction amount verification failed');
     }
 
     // Process topup
