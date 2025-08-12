@@ -225,17 +225,18 @@ const AdminDashboard = () => {
         
         supabase
           .from('transactions')
-          .select('amount, currency')
-          .eq('transaction_type', 'topup')
+          .select('amount, currency, transaction_type')
+          .in('transaction_type', ['wallet_topup', 'topup'])
           .eq('status', 'completed')
       ]);
       
       setNotifications(notificationsResponse.data || []);
 
       const totalWalletTopups = walletDataResponse.data?.length || 0;
-      const revenue = walletDataResponse.data?.reduce((sum, transaction) => 
-        sum + (transaction.currency === 'NGN' ? transaction.amount / 100 : transaction.amount / 100 * 500), 0
-      ) || 0;
+      const revenue = walletDataResponse.data?.reduce((sum, transaction) => {
+        // Amount is already in main currency units (naira/dollars), not kobo/cents
+        return sum + transaction.amount;
+      }, 0) || 0;
 
       setStats({
         totalInquiries: totalInquiriesResponse.count || 0,
