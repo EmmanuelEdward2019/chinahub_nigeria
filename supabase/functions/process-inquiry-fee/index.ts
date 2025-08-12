@@ -139,20 +139,42 @@ serve(async (req) => {
     // Process fee deduction
     const result = await deductInquiryFee(supabase, user.id, feeAmount, currency, inquiry_id);
     
-    // Create notifications
-    await createNotifications(supabase, user.id, feeAmount, currency, inquiry_id);
+  // Create notifications
+  await createNotifications(supabase, user.id, feeAmount, currency, inquiry_id);
 
-    console.log('Inquiry fee processing completed successfully');
+  // Send transaction emails
+  try {
+    const { data: wallet } = await supabase
+      .from('wallets')
+      .select('naira_balance, dollar_balance')
+      .eq('user_id', user.id)
+      .single();
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: 'Inquiry fee processed successfully',
-      fee_amount: feeAmount,
-      currency: currency,
-      new_balance: result.new_balance
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    await supabase.functions.invoke('send-transaction-email', {
+      body: {
+        type: 'deduction',
+        userId: user.id,
+        amount: feeAmount,
+        currency: currency,
+        reference: `INQ-${inquiry_id}`,
+        balance: wallet || { naira_balance: 0, dollar_balance: 0 }
+      }
     });
+  } catch (emailError) {
+    console.error('Failed to send transaction emails:', emailError);
+  }
+
+  console.log('Inquiry fee processing completed successfully');
+
+  return new Response(JSON.stringify({ 
+    success: true, 
+    message: 'Inquiry fee processed successfully',
+    fee_amount: feeAmount,
+    currency: currency,
+    new_balance: result.new_balance
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
 
   } catch (error) {
     console.error('Process inquiry fee error:', error);

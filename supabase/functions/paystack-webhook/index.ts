@@ -234,11 +234,33 @@ serve(async (req) => {
     // Process topup
     await processWalletTopup(supabase, transaction, amountInMainUnit, currency, reference);
     
-    // Create notifications
-    await createNotifications(supabase, transaction.user_id, amountInMainUnit, currency, reference);
+  // Create notifications
+  await createNotifications(supabase, transaction.user_id, amountInMainUnit, currency, reference);
 
-    console.log('Webhook processing completed successfully');
-    return new Response('OK', { headers: corsHeaders });
+  // Send transaction emails
+  try {
+    const { data: wallet } = await supabase
+      .from('wallets')
+      .select('naira_balance, dollar_balance')
+      .eq('user_id', transaction.user_id)
+      .single();
+
+    await supabase.functions.invoke('send-transaction-email', {
+      body: {
+        type: 'topup',
+        userId: transaction.user_id,
+        amount: amountInMainUnit,
+        currency: currency,
+        reference: reference,
+        balance: wallet || { naira_balance: 0, dollar_balance: 0 }
+      }
+    });
+  } catch (emailError) {
+    console.error('Failed to send transaction emails:', emailError);
+  }
+
+  console.log('Webhook processing completed successfully');
+  return new Response('OK', { headers: corsHeaders });
 
   } catch (error) {
     console.error('Webhook error:', error);

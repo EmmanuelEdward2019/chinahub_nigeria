@@ -243,68 +243,69 @@ const Navigation = ({ user }: NavigationProps) => {
               </Link>
               <div className="pt-4 border-t space-y-3">
                 {user && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Notifications</span>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="relative p-2"
-                      onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                    >
-                      <Bell className="h-4 w-4" />
-                      {unreadCount > 0 && (
-                        <Badge 
-                          variant="destructive" 
-                          className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-xs"
-                        >
-                          {unreadCount}
-                        </Badge>
-                      )}
-                    </Button>
-                  </div>
-                )}
-                
-                {user && isNotificationOpen && (
-                  <div className="bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                    <div className="p-3 border-b">
-                      <h4 className="font-semibold text-sm">Notifications</h4>
-                    </div>
-                    {notifications.length === 0 ? (
-                      <div className="p-3 text-center text-muted-foreground text-sm">
-                        No notifications
-                      </div>
-                    ) : (
-                      <div className="space-y-1">
-                        {notifications.slice(0, 5).map((notification) => (
-                          <div
-                            key={notification.id}
-                            className={`p-3 hover:bg-muted cursor-pointer border-b ${
-                              !notification.read ? 'bg-blue-50' : ''
-                            }`}
-                            onClick={() => {
-                              markAsRead(notification.id);
-                              setIsNotificationOpen(false);
-                            }}
+                  <>
+                    <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
+                      <PopoverTrigger asChild>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Notifications</span>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="relative p-2"
                           >
-                            <div className="flex justify-between items-start mb-1">
-                              <h5 className="font-medium text-xs">{notification.title}</h5>
-                              {!notification.read && (
-                                <Badge variant="secondary" className="text-xs">
-                                  New
-                                </Badge>
-                              )}
+                            <Bell className="h-4 w-4" />
+                            {unreadCount > 0 && (
+                              <Badge 
+                                variant="destructive" 
+                                className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-xs"
+                              >
+                                {unreadCount}
+                              </Badge>
+                            )}
+                          </Button>
+                        </div>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0" align="end">
+                        <div className="p-4 border-b">
+                          <h4 className="font-semibold">Notifications</h4>
+                        </div>
+                        <ScrollArea className="h-80">
+                          {notifications.length === 0 ? (
+                            <div className="p-4 text-center text-muted-foreground">
+                              No notifications
                             </div>
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                              {notification.message}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {new Date(notification.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                          ) : (
+                            <div className="space-y-1">
+                              {notifications.map((notification) => (
+                                <div
+                                  key={notification.id}
+                                  className={`p-3 hover:bg-muted cursor-pointer border-b ${
+                                    !notification.read ? 'bg-blue-50' : ''
+                                  }`}
+                                  onClick={() => markAsRead(notification.id)}
+                                >
+                                  <div className="flex justify-between items-start mb-1">
+                                    <h5 className="font-medium text-sm">{notification.title}</h5>
+                                    {!notification.read && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        New
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-muted-foreground line-clamp-2">
+                                    {notification.message}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {new Date(notification.created_at).toLocaleDateString()}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </PopoverContent>
+                    </Popover>
+                  </>
                 )}
                 
                 {user ? (
