@@ -9,6 +9,8 @@ const corsHeaders = {
 async function processWalletTopup(supabase: any, transaction: any, amount: number, currency: string, reference: string) {
   console.log('Starting wallet topup process...');
   
+  console.log(`Processing wallet topup for user ${transaction.user_id}: ${amount} ${currency}`);
+  
   const { data: result, error: processError } = await supabase
     .rpc('process_wallet_topup', {
       p_user_id: transaction.user_id,
@@ -22,7 +24,16 @@ async function processWalletTopup(supabase: any, transaction: any, amount: numbe
     throw processError;
   }
 
-  console.log('Wallet topup completed:', result);
+  console.log('Wallet topup completed successfully:', result);
+  
+  // Verify wallet balance was updated
+  const { data: wallet } = await supabase
+    .from('wallets')
+    .select('naira_balance, dollar_balance')
+    .eq('user_id', transaction.user_id)
+    .single();
+    
+  console.log('Current wallet balance after topup:', wallet);
   return result;
 }
 
@@ -100,6 +111,12 @@ serve(async (req) => {
     const { reference, amount, currency } = event.data;
     const amountInMainUnit = Math.round(amount / 100); // Convert from kobo to naira
     console.log(`Processing payment: ${amountInMainUnit} ${currency} for reference ${reference}`);
+    
+    // Validate amount is reasonable (between ₦10 and ₦10,000,000)
+    if (amountInMainUnit < 10 || amountInMainUnit > 10000000) {
+      console.error('Invalid payment amount:', amountInMainUnit);
+      throw new Error('Invalid payment amount');
+    }
 
     // Find transaction
     const { data: transaction, error: transactionError } = await supabase
