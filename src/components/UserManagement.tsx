@@ -80,11 +80,15 @@ const UserManagement = () => {
       const usersWithData = await Promise.all(
         (profiles || []).map(async (profile) => {
           // Get wallet data
-          const { data: wallet } = await supabase
+          const { data: wallet, error: walletError } = await supabase
             .from('wallets')
             .select('naira_balance, dollar_balance')
             .eq('user_id', profile.user_id)
-            .single();
+            .maybeSingle();
+
+          if (walletError) {
+            console.error('Error fetching wallet for user:', profile.user_id, walletError);
+          }
 
           // Get user roles
           const { data: roles } = await supabase
