@@ -1,5 +1,11 @@
 Options -MultiViews
 RewriteEngine On
+
+# Proxy Paystack webhook to Supabase Edge Function
+RewriteCond %{REQUEST_URI} ^/api/paystack/webhook$ [NC]
+RewriteRule ^api/paystack/webhook$ https://enxrledmmhrmbxifnjbu.functions.supabase.co/paystack-webhook [P,L]
+
+# SPA fallback rules
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^.*$ index.html [L]
