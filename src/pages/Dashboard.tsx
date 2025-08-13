@@ -556,38 +556,6 @@ const Dashboard = () => {
                     </CardContent>
                   </Card>
 
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm">Processing Fees</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div>
-                        <label className="text-xs font-medium text-muted-foreground">Naira Fee</label>
-                        <p className="text-lg font-semibold">
-                          {selectedInquiry.processing_fee_naira 
-                            ? `₦${(selectedInquiry.processing_fee_naira / 100).toLocaleString()}`
-                            : "N/A"
-                          }
-                        </p>
-                      </div>
-                      
-                      <div>
-                        <label className="text-xs font-medium text-muted-foreground">Dollar Fee</label>
-                        <p className="text-lg font-semibold">
-                          {selectedInquiry.processing_fee_dollar 
-                            ? `$${(selectedInquiry.processing_fee_dollar / 100).toFixed(2)}`
-                            : "N/A"
-                          }
-                        </p>
-                      </div>
-
-                      <div className="pt-2">
-                        <p className="text-xs text-muted-foreground">
-                          Note: This fee covers procurement, quality assurance, and shipping coordination services.
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
                 </div>
 
                 <div className="pt-4 border-t">
@@ -607,15 +575,9 @@ const Dashboard = () => {
                       <p className="text-sm text-muted-foreground mb-4">
                         This quote has been approved. Confirm to proceed with sourcing and process payment.
                       </p>
-                      <div className="flex justify-end space-x-2">
+                      <div className="flex justify-end">
                         <Button variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>
                           Close
-                        </Button>
-                        <Button 
-                          className="bg-green-600 hover:bg-green-700"
-                          onClick={() => selectedInquiry && confirmQuote(selectedInquiry)}
-                        >
-                          Confirm Quote & Pay
                         </Button>
                       </div>
                     </div>
