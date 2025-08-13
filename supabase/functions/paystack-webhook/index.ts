@@ -225,17 +225,21 @@ serve(async (req) => {
       return new Response('OK', { headers: corsHeaders });
     }
     
-    // Validate transaction amount matches what we expect
-    if (transaction.amount !== amountInMainUnit) {
-      console.error(`Transaction amount mismatch: DB=${transaction.amount}, Paystack=${amountInMainUnit}`);
+    // CRITICAL FIX: Convert amounts consistently - DB stores in kobo, Paystack returns in kobo
+    const transactionAmountInKobo = transaction.amount;
+    const paystackAmountInKobo = paystackData.amount;
+    
+    if (transactionAmountInKobo !== paystackAmountInKobo) {
+      console.error(`Transaction amount mismatch: DB=${transactionAmountInKobo} kobo, Paystack=${paystackAmountInKobo} kobo`);
       throw new Error('Transaction amount verification failed');
     }
 
-    // Process topup
-    await processWalletTopup(supabase, transaction, amountInMainUnit, currency, reference);
+    // Process topup - CRITICAL FIX: Use kobo amount from transaction, not converted amount
+    await processWalletTopup(supabase, transaction, transactionAmountInKobo, currency, reference);
     
-  // Create notifications
-  await createNotifications(supabase, transaction.user_id, amountInMainUnit, currency, reference);
+  // Create notifications - CRITICAL FIX: Use display amount (converted from kobo)
+  const displayAmount = Math.round(transactionAmountInKobo / 100);
+  await createNotifications(supabase, transaction.user_id, displayAmount, currency, reference);
 
   // Send transaction emails
   try {
@@ -249,7 +253,7 @@ serve(async (req) => {
       body: {
         type: 'topup',
         userId: transaction.user_id,
-        amount: amountInMainUnit,
+        amount: displayAmount,
         currency: currency,
         reference: reference,
         balance: wallet || { naira_balance: 0, dollar_balance: 0 }

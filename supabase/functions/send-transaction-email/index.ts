@@ -89,19 +89,28 @@ Your inquiry is now being processed by our team.
 Best regards,
 ChinaHub Team`;
 
-    // Send email to user
-    const { error: userEmailError } = await supabase.functions.invoke('resend', {
-      body: {
-        from: 'ChinaHub <noreply@chinahub.com>',
+    // Check if we have Resend configured for direct email sending
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    
+    if (resendApiKey) {
+      // Use Resend directly
+      const { Resend } = await import('npm:resend@4.0.0');
+      const resend = new Resend(resendApiKey);
+      
+      const { error: userEmailError } = await resend.emails.send({
+        from: 'ChinaHub <onboarding@resend.dev>',
         to: [userEmail],
         subject: userSubject,
         text: userMessage,
-      },
-    });
+      });
 
-    if (userEmailError) {
-      console.error('Failed to send user email:', userEmailError);
+      if (userEmailError) {
+        console.error('Failed to send user email:', userEmailError);
+      }
+    } else {
+      console.log('RESEND_API_KEY not configured, skipping email');
     }
+
 
     // Get admin email and send notification
     const { data: adminUser } = await supabase
@@ -139,18 +148,22 @@ Date: ${new Date().toLocaleDateString()}
 
 This is an automated notification from ChinaHub.`;
 
-        const { error: adminEmailError } = await supabase.functions.invoke('resend', {
-          body: {
-            from: 'ChinaHub <admin@chinahub.com>',
+        if (resendApiKey) {
+          const { Resend } = await import('npm:resend@4.0.0');
+          const resend = new Resend(resendApiKey);
+          
+          const { error: adminEmailError } = await resend.emails.send({
+            from: 'ChinaHub <onboarding@resend.dev>',
             to: [adminAuth.user.email],
             subject: adminSubject,
             text: adminMessage,
-          },
-        });
+          });
 
-        if (adminEmailError) {
-          console.error('Failed to send admin email:', adminEmailError);
+          if (adminEmailError) {
+            console.error('Failed to send admin email:', adminEmailError);
+          }
         }
+
       }
     }
 
