@@ -142,20 +142,34 @@ const Dashboard = () => {
     }
   };
 
+  // Realtime updates for transactions and wallets
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel('realtime-wallet')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${user?.id}` }, () => {
+        fetchUserData(user!.id);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'wallets', filter: `user_id=eq.${user?.id}` }, () => {
+        fetchUserData(user!.id);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
   };
 
   const markNotificationsAsRead = async () => {
-    if (notifications.length === 0) return;
-    
+    if (!user || notifications.length === 0) return;
     await supabase
       .from('notifications')
       .update({ read: true })
-      .eq('user_id', user?.id)
+      .eq('user_id', user.id)
       .eq('read', false);
-    
-    await fetchUserData(user?.id || "");
+    await fetchUserData(user.id);
   };
 
   const viewQuoteDetails = (inquiry: Inquiry) => {

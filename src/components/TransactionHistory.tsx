@@ -34,6 +34,20 @@ const TransactionHistory = ({ userId, currency = "NGN", isAdmin = false }: Trans
     }
   }, [userId, currency]);
 
+  // Realtime updates for user's transactions and wallet
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel(`transactions-${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${userId}` }, () => {
+        fetchTransactions();
+        fetchWalletBalance();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, currency]);
+
   const fetchTransactions = async () => {
     try {
       let query = supabase
