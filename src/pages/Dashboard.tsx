@@ -31,6 +31,7 @@ interface Inquiry {
   item_name: string;
   status: string;
   created_at: string;
+  quantity?: number;
   supplier_quote?: string;
   admin_feedback?: string;
   processing_fee_naira?: number;
@@ -524,8 +525,8 @@ const Dashboard = () => {
 
         {/* Quote Details Dialog */}
         <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
+          <DialogContent className="max-w-lg">
+            <DialogHeader className="text-center">
               <DialogTitle>Supplier Quote Details</DialogTitle>
               <DialogDescription>
                 {selectedInquiry?.item_name} - Approved Quote
@@ -534,37 +535,44 @@ const Dashboard = () => {
 
             {selectedInquiry && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm">Quote Information</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div>
-                        <label className="text-xs font-medium text-muted-foreground">Supplier Quote</label>
-                        <p className="text-sm mt-1 p-2 bg-gray-50 rounded border">
-                          {selectedInquiry.supplier_quote || "No quote details provided"}
-                        </p>
-                      </div>
-                      
-                      <div>
-                        <label className="text-xs font-medium text-muted-foreground">Admin Feedback</label>
-                        <p className="text-sm mt-1 p-2 bg-gray-50 rounded border">
-                          {selectedInquiry.admin_feedback || "No additional feedback"}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm text-center">Quote Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Item</label>
+                      <p className="text-lg font-semibold">{selectedInquiry.item_name}</p>
+                    </div>
+                    
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Quantity</label>
+                      <p className="text-lg font-semibold">{selectedInquiry.quantity?.toLocaleString()}</p>
+                    </div>
 
-                </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Supplier Quote</label>
+                      <p className="text-sm mt-1 p-2 bg-gray-50 rounded border">
+                        {selectedInquiry.supplier_quote || "No quote details provided"}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Admin Feedback</label>
+                      <p className="text-sm mt-1 p-2 bg-gray-50 rounded border">
+                        {selectedInquiry.admin_feedback || "No additional feedback"}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <div className="pt-4 border-t">
+                <div className="pt-4 border-t text-center">
                   {selectedInquiry?.quote_payment_processed ? (
                     <div>
                       <p className="text-sm text-green-600 mb-4 font-medium">
                         ✓ Quote confirmed and payment processed. Our team is now sourcing your product.
                       </p>
-                      <div className="flex justify-end">
+                      <div className="flex justify-center">
                         <Button variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>
                           Close
                         </Button>
@@ -573,9 +581,9 @@ const Dashboard = () => {
                   ) : (
                     <div>
                       <p className="text-sm text-muted-foreground mb-4">
-                        This quote has been approved. Confirm to proceed with sourcing and process payment.
+                        This quote has been approved. Contact us on WhatsApp for further details: +8619589456744 or +234 8133628713.
                       </p>
-                      <div className="flex justify-end">
+                      <div className="flex justify-center">
                         <Button variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>
                           Close
                         </Button>

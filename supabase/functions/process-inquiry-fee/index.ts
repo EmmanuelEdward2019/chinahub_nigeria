@@ -52,12 +52,13 @@ async function createNotifications(supabase: any, userId: string, amount: number
   console.log('Creating fee notifications...');
   
   // User notification
+  const displayAmount = currency === 'NGN' ? '1,000' : '2';
   const { error: userNotifError } = await supabase
     .from('notifications')
     .insert({
       user_id: userId,
       title: 'Inquiry Processing Fee Deducted',
-      message: `${currency === 'NGN' ? '₦' : '$'}${amount.toLocaleString()} has been deducted for inquiry processing.`,
+      message: `${currency === 'NGN' ? '₦' : '$'}${displayAmount} has been deducted for inquiry processing.`,
       type: 'info',
       inquiry_id: inquiryId
     });
@@ -80,7 +81,7 @@ async function createNotifications(supabase: any, userId: string, amount: number
       .insert({
         user_id: adminUser.user_id,
         title: 'Inquiry Fee Collected',
-        message: `Processing fee of ${currency === 'NGN' ? '₦' : '$'}${amount.toLocaleString()} collected. Reference: INQ-${inquiryId}`,
+        message: `Processing fee of ${currency === 'NGN' ? '₦' : '$'}${displayAmount} collected. Reference: INQ-${inquiryId}`,
         type: 'info',
         inquiry_id: inquiryId
       });
