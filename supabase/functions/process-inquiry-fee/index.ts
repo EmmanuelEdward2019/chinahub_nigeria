@@ -21,7 +21,7 @@ async function getInquirySettings(supabase: any) {
   // Return default values if no settings found
   return settings || {
     default_fee_naira: 100000,  // ₦1,000 in kobo
-    default_fee_dollar: 500     // $5 in cents
+    default_fee_dollar: 200     // $2 in cents
   };
 }
 
