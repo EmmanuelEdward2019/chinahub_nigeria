@@ -23,8 +23,20 @@ serve(async (req) => {
     const { amount, currency, user_id, redirect_url } = await req.json()
     console.log("Request data:", { amount, currency, user_id, redirect_url })
 
+    // Validate minimum amounts
+    const minAmountNGN = 1000; // ₦1,000
+    const minAmountUSD = 5; // $5
+
     if (!amount || !user_id) {
       throw new Error('Amount and user_id are required')
+    }
+
+    if (currency === 'NGN' && amount < minAmountNGN) {
+      throw new Error(`Minimum amount for NGN is ₦${minAmountNGN}`)
+    }
+
+    if (currency === 'USD' && amount < minAmountUSD) {
+      throw new Error(`Minimum amount for USD is $${minAmountUSD}`)
     }
 
     const paystackSecretKey = Deno.env.get('PAYSTACK_SECRET_KEY')
@@ -55,7 +67,7 @@ serve(async (req) => {
       .from('transactions')
       .insert({
         user_id,
-        amount: amount, // Store the original amount in naira, not kobo
+        amount: amountInKobo, // Store in kobo for consistency
         currency,
         transaction_type: 'wallet_topup',
         status: 'pending',
