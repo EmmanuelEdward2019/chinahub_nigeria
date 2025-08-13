@@ -86,6 +86,8 @@ const UserManagement = () => {
             .eq('user_id', profile.user_id)
             .maybeSingle();
 
+          console.log('Wallet data for user', profile.full_name, ':', wallet, 'Error:', walletError);
+
           if (walletError) {
             console.error('Error fetching wallet for user:', profile.user_id, walletError);
           }
