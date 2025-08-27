@@ -209,12 +209,8 @@ const InquiryForm = () => {
         throw feeError;
       }
 
-      toast({
-        title: "Inquiry submitted successfully!",
-        description: `Payment of ${currency === "NGN" ? "₦" : "$"}${(requiredAmount / 100).toLocaleString()} has been deducted from your wallet. We'll review your request and get back to you with a quote within 3-5 business days.`,
-      });
-
-      navigate("/dashboard");
+      // Navigate to success page instead of showing toast
+      navigate('/inquiry-success');
     } catch (error) {
       console.error('Error submitting inquiry:', error);
       toast({
@@ -229,6 +225,43 @@ const InquiryForm = () => {
   };
 
   const handleTopUp = async () => {
+    // Check if we have pending inquiry data
+    const pendingInquiry = localStorage.getItem('pendingInquiry');
+    
+    if (pendingInquiry) {
+      // If we have pending inquiry data, we need to submit the inquiry after payment
+      // For now, let's handle the payment first and then submit the inquiry
+      const inquiryData = JSON.parse(pendingInquiry);
+      
+      try {
+        // Process payment first
+        const { data, error } = await supabase.functions.invoke('paystack-topup', {
+          body: {
+            amount: 1000, // ₦1,000
+            currency: 'NGN',
+            user_id: user?.id,
+            redirect_url: `${window.location.origin}/inquiry-success?pendingInquiry=true`
+          }
+        });
+
+        if (error) throw error;
+
+        // Redirect to Paystack checkout
+        if (data.authorization_url) {
+          window.location.href = data.authorization_url;
+        }
+      } catch (error) {
+        console.error('Error initiating payment:', error);
+        toast({
+          title: "Payment Error",
+          description: "Failed to initiate payment. Please try again.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+    
+    // Regular top-up flow
     if (!user) return;
     
     setSubmitting(true);
@@ -264,7 +297,21 @@ const InquiryForm = () => {
     e.preventDefault();
     if (!user) return;
 
-    setShowPaymentDialog(true);
+      // Store inquiry data for payment flow
+      const inquiryData = {
+        categoryId: selectedCategory,
+        itemName,
+        description,
+        quantity: parseInt(quantity),
+        sampleFiles,
+        processingFee: currency === 'NGN' ? inquirySettings?.default_fee_naira : inquirySettings?.default_fee_dollar,
+        currency: currency
+      };
+      
+      // Save inquiry data to localStorage for payment flow
+      localStorage.setItem('pendingInquiry', JSON.stringify(inquiryData));
+      
+      setShowPaymentDialog(true);
   };
 
   return (

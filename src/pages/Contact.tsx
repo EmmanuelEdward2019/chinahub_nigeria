@@ -163,15 +163,17 @@ const Contact = () => {
                   </p>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <img src="/lovable-uploads/3e14156b-6a00-445b-901a-19fb81acc918.png" alt="WhatsApp" className="w-5 h-5" />
-                      <img src="/lovable-uploads/755b7541-7e98-451d-95b3-e5a1e101ca49.png" alt="WeChat" className="w-5 h-5" />
                       <a 
                         href="https://wa.me/8619589456744" 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="font-semibold text-primary hover:underline"
+                        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
                       >
-                        +86 19589456744
+                        <img src="/lovable-uploads/3e14156b-6a00-445b-901a-19fb81acc918.png" alt="WhatsApp" className="w-5 h-5" />
+                        <img src="/lovable-uploads/755b7541-7e98-451d-95b3-e5a1e101ca49.png" alt="WeChat" className="w-5 h-5" />
+                        <span className="font-semibold text-primary hover:underline">
+                          +86 19589456744
+                        </span>
                       </a>
                     </div>
                     <div className="flex items-center gap-2">

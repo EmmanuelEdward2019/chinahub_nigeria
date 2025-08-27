@@ -74,18 +74,8 @@ const Auth = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Please check your email to verify your account",
-      });
-
-      // Clear form and show success
-      setFullName("");
-      setEmail("");
-      setPassword("");
-      setConfirmPassword("");
-      setPhone("");
-      setCountry("");
+      // Redirect to success page
+      navigate("/signup-success");
     } catch (error: any) {
       toast({
         title: "Error",

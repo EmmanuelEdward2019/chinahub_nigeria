@@ -92,6 +92,7 @@ const AdminDashboard = () => {
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [supplierQuote, setSupplierQuote] = useState("");
   const [adminFeedback, setAdminFeedback] = useState("");
+  const [feedbackImages, setFeedbackImages] = useState<File[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [currentInquiriesPage, setCurrentInquiriesPage] = useState(1);
   const [totalInquiries, setTotalInquiries] = useState(0);
@@ -291,8 +292,40 @@ const AdminDashboard = () => {
     };
 
     if (action === 'approve') {
+      // Upload feedback images if any
+      let uploadedImages = [];
+      if (feedbackImages.length > 0) {
+        for (const image of feedbackImages) {
+          const fileExt = image.name.split('.').pop();
+          const fileName = `feedback/${selectedInquiry.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('samples')
+            .upload(fileName, image);
+
+          if (uploadError) {
+            console.error('Error uploading feedback image:', uploadError);
+          } else {
+            const { data: { publicUrl } } = supabase.storage
+              .from('samples')
+              .getPublicUrl(fileName);
+
+            uploadedImages.push({
+              url: publicUrl,
+              name: image.name,
+              size: image.size
+            });
+          }
+        }
+      }
+
       updates.supplier_quote = supplierQuote;
       updates.admin_feedback = adminFeedback;
+      if (uploadedImages.length > 0) {
+        updates.admin_feedback += `\n\n[Attached Images: ${uploadedImages.length} files]`;
+        // You could also store the image URLs in a separate field if needed
+        updates.admin_feedback_images = uploadedImages;
+      }
     }
 
     const { error } = await supabase
@@ -330,6 +363,7 @@ const AdminDashboard = () => {
     setSelectedInquiry(null);
     setSupplierQuote("");
     setAdminFeedback("");
+    setFeedbackImages([]);
     await fetchData();
   };
 
@@ -623,6 +657,77 @@ const AdminDashboard = () => {
                                       placeholder="Enter feedback for the user..."
                                       rows={3}
                                     />
+                                  </div>
+                                  
+                                  {/* Image Upload Section */}
+                                  <div>
+                                    <Label htmlFor="feedbackImages">Attach Product Images (Optional)</Label>
+                                    <div className="border-2 border-dashed border-border rounded-lg p-4">
+                                      <div className="text-center">
+                                        <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                                        <Label htmlFor="feedback-image-upload" className="cursor-pointer">
+                                          <span className="text-primary hover:text-primary/80">
+                                            Click to upload product images
+                                          </span>
+                                        </Label>
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                          JPG, PNG up to 10MB each (Max 5 images)
+                                        </p>
+                                      </div>
+                                      <Input
+                                        id="feedback-image-upload"
+                                        type="file"
+                                        accept=".jpg,.jpeg,.png"
+                                        onChange={(e) => {
+                                          const files = Array.from(e.target.files || []);
+                                          
+                                          // Check file size and count
+                                          for (const file of files) {
+                                            if (file.size > 10 * 1024 * 1024) {
+                                              toast({
+                                                title: "File too large",
+                                                description: `File "${file.name}" is too large. Please upload files smaller than 10MB`,
+                                                variant: "destructive",
+                                              });
+                                              return;
+                                            }
+                                          }
+                                          
+                                          if (feedbackImages.length + files.length > 5) {
+                                            toast({
+                                              title: "Too many files",
+                                              description: "You can upload a maximum of 5 images",
+                                              variant: "destructive",
+                                            });
+                                            return;
+                                          }
+                                          
+                                          setFeedbackImages(prev => [...prev, ...files]);
+                                        }}
+                                        className="hidden"
+                                        multiple
+                                      />
+                                      
+                                      {feedbackImages.length > 0 && (
+                                        <div className="mt-4 space-y-2">
+                                          <p className="text-sm font-medium">Selected images:</p>
+                                          {feedbackImages.map((file, index) => (
+                                            <div key={index} className="flex items-center justify-between p-2 bg-secondary/20 rounded">
+                                              <span className="text-sm text-primary">{file.name}</span>
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setFeedbackImages(prev => prev.filter((_, i) => i !== index))}
+                                                className="text-red-500 hover:text-red-700"
+                                              >
+                                                Remove
+                                              </Button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
 
 

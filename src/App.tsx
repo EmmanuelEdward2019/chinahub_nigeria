@@ -16,6 +16,8 @@ import NotFound from "./pages/NotFound";
 import ProductSourcing from "./pages/services/ProductSourcing";
 import CustomInquiries from "./pages/services/CustomInquiries";
 import SupplierMatching from "./pages/services/SupplierMatching";
+import SignupSuccess from "./pages/SignupSuccess";
+import InquirySuccess from "./pages/InquirySuccess";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +40,8 @@ const App = () => (
           <Route path="/services/product-sourcing" element={<ProductSourcing />} />
           <Route path="/services/custom-inquiries" element={<CustomInquiries />} />
           <Route path="/services/supplier-matching" element={<SupplierMatching />} />
+          <Route path="/signup-success" element={<SignupSuccess />} />
+          <Route path="/inquiry-success" element={<InquirySuccess />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
