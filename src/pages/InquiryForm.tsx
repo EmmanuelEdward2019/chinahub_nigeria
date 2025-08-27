@@ -147,9 +147,22 @@ const InquiryForm = () => {
       // Check if user has sufficient balance
       const currentBalance = currency === "NGN" ? wallet.naira_balance : wallet.dollar_balance;
       if (currentBalance < requiredAmount) {
+        // Store inquiry data for payment flow
+        const inquiryData = {
+          categoryId: selectedCategory,
+          itemName,
+          description,
+          quantity: parseInt(quantity),
+          sampleFiles,
+          processingFee: currency === 'NGN' ? inquirySettings?.default_fee_naira : inquirySettings?.default_fee_dollar,
+          currency: currency
+        };
+        
+        localStorage.setItem('pendingInquiry', JSON.stringify(inquiryData));
+        
         toast({
           title: "Insufficient balance",
-          description: `You need at least ${currency === "NGN" ? "₦" : "$"}${(requiredAmount / 100).toLocaleString()} to submit an inquiry. Please top up your wallet.`,
+          description: `You need at least ${currency === "NGN" ? "₦" : "$"}${(requiredAmount / 100).toLocaleString()} to submit an inquiry. Please top up your wallet to proceed.`,
           variant: "destructive",
         });
         setSubmitting(false);

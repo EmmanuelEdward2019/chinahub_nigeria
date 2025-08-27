@@ -68,7 +68,7 @@ const Auth = () => {
             phone,
             country,
           },
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: `${window.location.origin}/signup-success`,
         },
       });
 
