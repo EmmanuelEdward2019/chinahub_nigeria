@@ -596,8 +596,8 @@ const AdminDashboard = () => {
                                 Review
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] p-0">
-                              <div className="sticky top-0 z-10 bg-background border-b px-6 py-4">
+                            <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] flex flex-col p-0">
+                              <div className="shrink-0 border-b px-6 py-4">
                                 <DialogHeader>
                                   <DialogTitle>Review Inquiry</DialogTitle>
                                   <DialogDescription>
@@ -607,153 +607,156 @@ const AdminDashboard = () => {
                               </div>
                               
                               {selectedInquiry && (
-                                <ScrollArea className="flex-1 px-6">
-                                  <div className="space-y-6 pb-6">
-                                  <div>
-                                    <strong>Description:</strong>
-                                    <p className="text-sm text-muted-foreground mt-1">{selectedInquiry.description}</p>
-                                  </div>
-                                  
-                                  <div>
-                                    <strong>Quantity:</strong> {selectedInquiry.quantity}
-                                  </div>
+                                <>
+                                  <ScrollArea className="flex-1 px-6" style={{ height: 'calc(90vh - 200px)' }}>
+                                    <div className="space-y-6 py-6">
+                                    <div>
+                                      <strong>Description:</strong>
+                                      <p className="text-sm text-muted-foreground mt-1">{selectedInquiry.description}</p>
+                                    </div>
+                                    
+                                    <div>
+                                      <strong>Quantity:</strong> {selectedInquiry.quantity}
+                                    </div>
 
-                                   {selectedInquiry.sample_files && selectedInquiry.sample_files.length > 0 && (
-                                     <div>
-                                       <strong>Sample Files:</strong>
-                                       <div className="mt-2 space-y-2">
-                                         {selectedInquiry.sample_files.map((file, index) => (
-                                           <div key={index} className="flex items-center gap-2">
-                                             <a 
-                                               href={`https://enxrledmmhrmbxifnjbu.supabase.co/storage/v1/object/public/samples/${file.url}`}
-                                               target="_blank" 
-                                               rel="noopener noreferrer"
-                                               className="text-primary hover:underline"
-                                             >
-                                               {file.name}
-                                             </a>
-                                             <span className="text-xs text-muted-foreground">
-                                               ({Math.round(file.size / 1024)} KB)
-                                             </span>
-                                           </div>
-                                         ))}
+                                     {selectedInquiry.sample_files && selectedInquiry.sample_files.length > 0 && (
+                                       <div>
+                                         <strong>Sample Files:</strong>
+                                         <div className="mt-2 space-y-2">
+                                           {selectedInquiry.sample_files.map((file, index) => (
+                                             <div key={index} className="flex items-center gap-2">
+                                               <a 
+                                                 href={`https://enxrledmmhrmbxifnjbu.supabase.co/storage/v1/object/public/samples/${file.url}`}
+                                                 target="_blank" 
+                                                 rel="noopener noreferrer"
+                                                 className="text-primary hover:underline"
+                                               >
+                                                 {file.name}
+                                               </a>
+                                               <span className="text-xs text-muted-foreground">
+                                                 ({Math.round(file.size / 1024)} KB)
+                                               </span>
+                                             </div>
+                                           ))}
+                                         </div>
                                        </div>
-                                     </div>
-                                   )}
+                                     )}
 
-                                  <div className="space-y-2">
-                                    <Label htmlFor="supplierQuote">Supplier Quote</Label>
-                                    <Textarea
-                                      id="supplierQuote"
-                                      value={supplierQuote}
-                                      onChange={(e) => setSupplierQuote(e.target.value)}
-                                      placeholder="Enter supplier quote details..."
-                                      rows={3}
-                                    />
-                                  </div>
+                                    <div className="space-y-2">
+                                      <Label htmlFor="supplierQuote">Supplier Quote</Label>
+                                      <Textarea
+                                        id="supplierQuote"
+                                        value={supplierQuote}
+                                        onChange={(e) => setSupplierQuote(e.target.value)}
+                                        placeholder="Enter supplier quote details..."
+                                        rows={3}
+                                      />
+                                    </div>
 
-                                  <div className="space-y-2">
-                                    <Label htmlFor="adminFeedback">Admin Feedback</Label>
-                                    <Textarea
-                                      id="adminFeedback"
-                                      value={adminFeedback}
-                                      onChange={(e) => setAdminFeedback(e.target.value)}
-                                      placeholder="Enter feedback for the user..."
-                                      rows={3}
-                                    />
-                                  </div>
-                                  
-                                  {/* Image Upload Section */}
-                                  <div>
-                                    <Label htmlFor="feedbackImages">Attach Product Images (Optional)</Label>
-                                    <div className="border-2 border-dashed border-border rounded-lg p-4">
-                                      <div className="text-center">
-                                        <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                                        <Label htmlFor="feedback-image-upload" className="cursor-pointer">
-                                          <span className="text-primary hover:text-primary/80">
-                                            Click to upload product images
-                                          </span>
-                                        </Label>
-                                        <p className="text-sm text-muted-foreground mt-1">
-                                          JPG, PNG up to 10MB each (Max 5 images)
-                                        </p>
-                                      </div>
-                                      <Input
-                                        id="feedback-image-upload"
-                                        type="file"
-                                        accept=".jpg,.jpeg,.png"
-                                        onChange={(e) => {
-                                          const files = Array.from(e.target.files || []);
-                                          
-                                          // Check file size and count
-                                          for (const file of files) {
-                                            if (file.size > 10 * 1024 * 1024) {
+                                    <div className="space-y-2">
+                                      <Label htmlFor="adminFeedback">Admin Feedback</Label>
+                                      <Textarea
+                                        id="adminFeedback"
+                                        value={adminFeedback}
+                                        onChange={(e) => setAdminFeedback(e.target.value)}
+                                        placeholder="Enter feedback for the user..."
+                                        rows={3}
+                                      />
+                                    </div>
+                                    
+                                    {/* Image Upload Section */}
+                                    <div>
+                                      <Label htmlFor="feedbackImages">Attach Product Images (Optional)</Label>
+                                      <div className="border-2 border-dashed border-border rounded-lg p-4">
+                                        <div className="text-center">
+                                          <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                                          <Label htmlFor="feedback-image-upload" className="cursor-pointer">
+                                            <span className="text-primary hover:text-primary/80">
+                                              Click to upload product images
+                                            </span>
+                                          </Label>
+                                          <p className="text-sm text-muted-foreground mt-1">
+                                            JPG, PNG up to 10MB each (Max 5 images)
+                                          </p>
+                                        </div>
+                                        <Input
+                                          id="feedback-image-upload"
+                                          type="file"
+                                          accept=".jpg,.jpeg,.png"
+                                          onChange={(e) => {
+                                            const files = Array.from(e.target.files || []);
+                                            
+                                            // Check file size and count
+                                            for (const file of files) {
+                                              if (file.size > 10 * 1024 * 1024) {
+                                                toast({
+                                                  title: "File too large",
+                                                  description: `File "${file.name}" is too large. Please upload files smaller than 10MB`,
+                                                  variant: "destructive",
+                                                });
+                                                return;
+                                              }
+                                            }
+                                            
+                                            if (feedbackImages.length + files.length > 5) {
                                               toast({
-                                                title: "File too large",
-                                                description: `File "${file.name}" is too large. Please upload files smaller than 10MB`,
+                                                title: "Too many files",
+                                                description: "You can upload a maximum of 5 images",
                                                 variant: "destructive",
                                               });
                                               return;
                                             }
-                                          }
-                                          
-                                          if (feedbackImages.length + files.length > 5) {
-                                            toast({
-                                              title: "Too many files",
-                                              description: "You can upload a maximum of 5 images",
-                                              variant: "destructive",
-                                            });
-                                            return;
-                                          }
-                                          
-                                          setFeedbackImages(prev => [...prev, ...files]);
-                                        }}
-                                        className="hidden"
-                                        multiple
-                                      />
-                                      
-                                      {feedbackImages.length > 0 && (
-                                        <div className="mt-4 space-y-2">
-                                          <p className="text-sm font-medium">Selected images:</p>
-                                          {feedbackImages.map((file, index) => (
-                                            <div key={index} className="flex items-center justify-between p-2 bg-secondary/20 rounded">
-                                              <span className="text-sm text-primary">{file.name}</span>
-                                              <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => setFeedbackImages(prev => prev.filter((_, i) => i !== index))}
-                                                className="text-red-500 hover:text-red-700"
-                                              >
-                                                Remove
-                                              </Button>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
+                                            
+                                            setFeedbackImages(prev => [...prev, ...files]);
+                                          }}
+                                          className="hidden"
+                                          multiple
+                                        />
+                                        
+                                        {feedbackImages.length > 0 && (
+                                          <div className="mt-4 space-y-2">
+                                            <p className="text-sm font-medium">Selected images:</p>
+                                            {feedbackImages.map((file, index) => (
+                                              <div key={index} className="flex items-center justify-between p-2 bg-secondary/20 rounded">
+                                                <span className="text-sm text-primary">{file.name}</span>
+                                                <Button
+                                                  type="button"
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  onClick={() => setFeedbackImages(prev => prev.filter((_, i) => i !== index))}
+                                                  className="text-red-500 hover:text-red-700"
+                                                >
+                                                  Remove
+                                                </Button>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    </div>
+                                  </ScrollArea>
+                                  
+                                  <div className="shrink-0 border-t px-6 py-4">
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                      <Button 
+                                        onClick={() => handleInquiryAction('approve')}
+                                        className="flex-1 min-h-[44px]"
+                                      >
+                                        <CheckCircle className="h-4 w-4 mr-2" />
+                                        Approve
+                                      </Button>
+                                      <Button 
+                                        onClick={() => handleInquiryAction('dismiss')}
+                                        variant="destructive"
+                                        className="flex-1 min-h-[44px]"
+                                      >
+                                        <XCircle className="h-4 w-4 mr-2" />
+                                        Dismiss
+                                      </Button>
                                     </div>
                                   </div>
-
-
-                                  <div className="flex flex-col sm:flex-row gap-3 mt-6 px-4 pb-4">
-                                    <Button 
-                                      onClick={() => handleInquiryAction('approve')}
-                                      className="flex-1 min-h-[44px]"
-                                    >
-                                      <CheckCircle className="h-4 w-4 mr-2" />
-                                      Approve
-                                    </Button>
-                                    <Button 
-                                      onClick={() => handleInquiryAction('dismiss')}
-                                      variant="destructive"
-                                      className="flex-1 min-h-[44px]"
-                                    >
-                                      <XCircle className="h-4 w-4 mr-2" />
-                                      Dismiss
-                                    </Button>
-                                  </div>
-                                  </div>
-                                </ScrollArea>
+                                </>
                               )}
                             </DialogContent>
                           </Dialog>

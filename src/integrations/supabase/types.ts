@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -47,6 +47,7 @@ export type Database = {
           description: string
           id: string
           item_name: string
+          order_stage_id: string | null
           payment_status: string | null
           processing_fee_dollar: number | null
           processing_fee_naira: number | null
@@ -70,6 +71,7 @@ export type Database = {
           description: string
           id?: string
           item_name: string
+          order_stage_id?: string | null
           payment_status?: string | null
           processing_fee_dollar?: number | null
           processing_fee_naira?: number | null
@@ -93,6 +95,7 @@ export type Database = {
           description?: string
           id?: string
           item_name?: string
+          order_stage_id?: string | null
           payment_status?: string | null
           processing_fee_dollar?: number | null
           processing_fee_naira?: number | null
@@ -114,6 +117,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inquiries_order_stage_id_fkey"
+            columns: ["order_stage_id"]
+            isOneToOne: false
+            referencedRelation: "order_stages"
             referencedColumns: ["id"]
           },
         ]
@@ -220,6 +230,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      order_stages: {
+        Row: {
+          admin_id: string | null
+          admin_notes: string | null
+          confirmed_quantity: number | null
+          created_at: string
+          id: string
+          inquiry_id: string
+          payment_reference: string | null
+          payment_status: string | null
+          product_images: Json | null
+          quoted_amount: number | null
+          quoted_currency: string | null
+          stage: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_id?: string | null
+          admin_notes?: string | null
+          confirmed_quantity?: number | null
+          created_at?: string
+          id?: string
+          inquiry_id: string
+          payment_reference?: string | null
+          payment_status?: string | null
+          product_images?: Json | null
+          quoted_amount?: number | null
+          quoted_currency?: string | null
+          stage?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_id?: string | null
+          admin_notes?: string | null
+          confirmed_quantity?: number | null
+          created_at?: string
+          id?: string
+          inquiry_id?: string
+          payment_reference?: string | null
+          payment_status?: string | null
+          product_images?: Json | null
+          quoted_amount?: number | null
+          quoted_currency?: string | null
+          stage?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       orders: {
         Row: {
@@ -427,15 +488,15 @@ export type Database = {
     Functions: {
       deduct_inquiry_fee: {
         Args: {
-          p_user_id: string
           p_amount: number
           p_currency: string
           p_inquiry_id: string
+          p_user_id: string
         }
         Returns: Json
       }
       deduct_wallet_balance: {
-        Args: { user_id: string; amount: number; currency: string }
+        Args: { amount: number; currency: string; user_id: string }
         Returns: undefined
       }
       fix_all_wallet_balances: {
@@ -448,17 +509,17 @@ export type Database = {
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }
       process_wallet_topup: {
         Args: {
-          p_user_id: string
           p_amount: number
           p_currency: string
           p_reference: string
+          p_user_id: string
         }
         Returns: Json
       }

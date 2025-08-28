@@ -13,6 +13,7 @@ import ProfileSettings from "@/components/ProfileSettings";
 import TransactionHistory from "@/components/TransactionHistory";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import { OrderFlow } from "@/components/OrderFlow";
 
 interface Profile {
   id: string;
@@ -31,13 +32,30 @@ interface Inquiry {
   item_name: string;
   status: string;
   created_at: string;
-  quantity?: number;
+  quantity: number;
   supplier_quote?: string;
   admin_feedback?: string;
   processing_fee_naira?: number;
   processing_fee_dollar?: number;
   quote_confirmed_at?: string;
   quote_payment_processed?: boolean;
+  order_stage_id?: string;
+  description: string;
+}
+
+interface OrderStage {
+  id: string;
+  inquiry_id: string;
+  stage: string;
+  product_images: any;
+  confirmed_quantity?: number;
+  quoted_amount?: number;
+  quoted_currency?: string;
+  admin_notes?: string;
+  payment_reference?: string;
+  payment_status: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface Notification {
@@ -55,6 +73,7 @@ const Dashboard = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [orderStages, setOrderStages] = useState<OrderStage[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
   const [loading, setLoading] = useState(true);
@@ -110,10 +129,22 @@ const Dashboard = () => {
       // Fetch inquiries with more details
       const { data: inquiriesData } = await supabase
         .from('inquiries')
-        .select('id, item_name, status, created_at, supplier_quote, admin_feedback, processing_fee_naira, processing_fee_dollar, quote_confirmed_at, quote_payment_processed')
+        .select('id, item_name, description, status, created_at, supplier_quote, admin_feedback, processing_fee_naira, processing_fee_dollar, quote_confirmed_at, quote_payment_processed, order_stage_id, quantity')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(5);
+
+      // Fetch order stages
+      const { data: orderStagesData } = await supabase
+        .from('order_stages')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      setOrderStages((orderStagesData || []).map(stage => ({
+        ...stage,
+        product_images: Array.isArray(stage.product_images) ? stage.product_images : []
+      })));
 
       // Fetch notifications
       const { data: notificationsData } = await supabase
@@ -459,60 +490,72 @@ const Dashboard = () => {
             <CardContent>
               {inquiries.length > 0 ? (
                 <div className="space-y-3">
-                  {inquiries.slice(0, 3).map((inquiry) => (
-                    <div key={inquiry.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex-1">
-                         <p className="font-medium text-sm">{inquiry.item_name}</p>
-                         <p className="text-xs text-muted-foreground">
-                           {new Date(inquiry.created_at).toLocaleDateString()}
-                         </p>
-                          {inquiry.status === 'pending' && (
-                            <p className="text-xs text-blue-600 font-medium mt-1">
-                              Awaiting admin review (3-5 days)
-                            </p>
-                          )}
-                          {inquiry.supplier_quote && inquiry.status === 'approved' && !inquiry.quote_payment_processed && (
-                            <Button
-                              variant="link"
-                              size="sm"
-                              className="text-xs p-0 h-auto mt-1 text-green-600"
-                              onClick={() => viewQuoteDetails(inquiry)}
-                            >
-                              <MessageSquare className="h-3 w-3 mr-1" />
-                              View Quote & Confirm
-                            </Button>
-                          )}
-                          {inquiry.supplier_quote && inquiry.status === 'approved' && inquiry.quote_payment_processed && (
-                            <Button
-                              variant="link"
-                              size="sm"
-                              className="text-xs p-0 h-auto mt-1"
-                              onClick={() => viewQuoteDetails(inquiry)}
-                            >
-                              <MessageSquare className="h-3 w-3 mr-1" />
-                              View Quote
-                            </Button>
-                          )}
-                      </div>
-                      <div className="flex flex-col items-end space-y-1">
-                        <Badge className={getStatusColor(inquiry.status)}>
-                          {inquiry.status}
-                        </Badge>
-                         {inquiry.processing_fee_naira && inquiry.status === 'approved' && (
-                           <div className="text-xs text-muted-foreground flex items-center">
-                             <DollarSign className="h-3 w-3 mr-1" />
-                             {formatCurrency(
-                               currency === "NGN" ? inquiry.processing_fee_naira : (inquiry.processing_fee_dollar || 0),
-                               currency
+                  {inquiries.slice(0, 3).map((inquiry) => {
+                    const orderStage = orderStages.find(os => os.inquiry_id === inquiry.id);
+                    return (
+                      <div key={inquiry.id} className="space-y-3">
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex-1">
+                             <p className="font-medium text-sm">{inquiry.item_name}</p>
+                             <p className="text-xs text-muted-foreground">
+                               {new Date(inquiry.created_at).toLocaleDateString()}
+                             </p>
+                              {inquiry.status === 'pending' && (
+                                <p className="text-xs text-blue-600 font-medium mt-1">
+                                  Awaiting admin review (3-5 days)
+                                </p>
+                              )}
+                              {inquiry.supplier_quote && inquiry.status === 'approved' && !inquiry.quote_payment_processed && !orderStage && (
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  className="text-xs p-0 h-auto mt-1 text-green-600"
+                                  onClick={() => viewQuoteDetails(inquiry)}
+                                >
+                                  <MessageSquare className="h-3 w-3 mr-1" />
+                                  View Quote & Confirm
+                                </Button>
+                              )}
+                              {inquiry.supplier_quote && inquiry.status === 'approved' && inquiry.quote_payment_processed && (
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  className="text-xs p-0 h-auto mt-1"
+                                  onClick={() => viewQuoteDetails(inquiry)}
+                                >
+                                  <MessageSquare className="h-3 w-3 mr-1" />
+                                  View Quote
+                                </Button>
+                              )}
+                          </div>
+                          <div className="flex flex-col items-end space-y-1">
+                            <Badge className={getStatusColor(inquiry.status)}>
+                              {inquiry.status}
+                            </Badge>
+                             {inquiry.processing_fee_naira && inquiry.status === 'approved' && (
+                               <div className="text-xs text-muted-foreground flex items-center">
+                                 <DollarSign className="h-3 w-3 mr-1" />
+                                 {formatCurrency(
+                                   currency === "NGN" ? inquiry.processing_fee_naira : (inquiry.processing_fee_dollar || 0),
+                                   currency
+                                 )}
+                                 {inquiry.quote_payment_processed && (
+                                   <span className="ml-1 text-green-600">✓ Paid</span>
+                                 )}
+                               </div>
                              )}
-                             {inquiry.quote_payment_processed && (
-                               <span className="ml-1 text-green-600">✓ Paid</span>
-                             )}
-                           </div>
-                         )}
+                          </div>
+                        </div>
+                        
+                        {/* Order Flow Component */}
+                        <OrderFlow 
+                          inquiry={inquiry} 
+                          orderStage={orderStage}
+                          onUpdate={() => fetchUserData(user?.id || "")}
+                        />
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">
