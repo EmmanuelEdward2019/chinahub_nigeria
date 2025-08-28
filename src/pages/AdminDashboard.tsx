@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Pagination,
   PaginationContent,
@@ -595,16 +596,19 @@ const AdminDashboard = () => {
                                 Review
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
-                              <DialogHeader>
-                                <DialogTitle>Review Inquiry</DialogTitle>
-                                <DialogDescription>
-                                  Product: {selectedInquiry?.item_name}
-                                </DialogDescription>
-                              </DialogHeader>
+                            <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] p-0">
+                              <div className="sticky top-0 z-10 bg-background border-b px-6 py-4">
+                                <DialogHeader>
+                                  <DialogTitle>Review Inquiry</DialogTitle>
+                                  <DialogDescription>
+                                    Product: {selectedInquiry?.item_name}
+                                  </DialogDescription>
+                                </DialogHeader>
+                              </div>
                               
                               {selectedInquiry && (
-                                <div className="space-y-4">
+                                <ScrollArea className="flex-1 px-6">
+                                  <div className="space-y-6 pb-6">
                                   <div>
                                     <strong>Description:</strong>
                                     <p className="text-sm text-muted-foreground mt-1">{selectedInquiry.description}</p>
@@ -731,10 +735,10 @@ const AdminDashboard = () => {
                                   </div>
 
 
-                                  <div className="flex space-x-2 pt-4">
+                                  <div className="flex flex-col sm:flex-row gap-3 mt-6 px-4 pb-4">
                                     <Button 
                                       onClick={() => handleInquiryAction('approve')}
-                                      className="flex-1"
+                                      className="flex-1 min-h-[44px]"
                                     >
                                       <CheckCircle className="h-4 w-4 mr-2" />
                                       Approve
@@ -742,13 +746,14 @@ const AdminDashboard = () => {
                                     <Button 
                                       onClick={() => handleInquiryAction('dismiss')}
                                       variant="destructive"
-                                      className="flex-1"
+                                      className="flex-1 min-h-[44px]"
                                     >
                                       <XCircle className="h-4 w-4 mr-2" />
                                       Dismiss
                                     </Button>
                                   </div>
-                                </div>
+                                  </div>
+                                </ScrollArea>
                               )}
                             </DialogContent>
                           </Dialog>
