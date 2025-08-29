@@ -108,3 +108,16 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom scrollbar utility for black thumb using semantic token */
+.scrollbar-black {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--foreground)) transparent;
+}
+.scrollbar-black::-webkit-scrollbar {
+  width: 10px;
+}
+.scrollbar-black::-webkit-scrollbar-thumb {
+  background: hsl(var(--foreground));
+  border-radius: 9999px;
+}

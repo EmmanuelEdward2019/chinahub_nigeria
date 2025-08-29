@@ -608,7 +608,7 @@ const AdminDashboard = () => {
                               
                               {selectedInquiry && (
                                 <>
-                                  <ScrollArea className="flex-1 px-6" style={{ height: 'calc(90vh - 200px)' }}>
+                                  <ScrollArea className="flex-1 px-6 overflow-auto scrollbar-black pr-2" style={{ height: 'calc(90vh - 200px)' }}>
                                     <div className="space-y-6 py-6">
                                     <div>
                                       <strong>Description:</strong>

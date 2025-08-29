@@ -609,6 +609,14 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
 
+                <div className="mt-2">
+                  <OrderFlow 
+                    inquiry={selectedInquiry} 
+                    orderStage={orderStages.find(os => os.inquiry_id === selectedInquiry.id)}
+                    onUpdate={() => fetchUserData(user?.id || "")}
+                  />
+                </div>
+
                 <div className="pt-4 border-t text-center">
                   {selectedInquiry?.quote_payment_processed ? (
                     <div>

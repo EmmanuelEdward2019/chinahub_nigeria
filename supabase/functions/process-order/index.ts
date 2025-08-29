@@ -15,22 +15,28 @@ serve(async (req) => {
   try {
     const { action, orderStageId, inquiryId, quotedAmount, adminNotes, paymentReference, productImages, confirmedQuantity } = await req.json();
 
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-    );
-
     // Get user from auth header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       throw new Error("No authorization header");
     }
 
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
+        },
+      }
+    );
+
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(authHeader.replace("Bearer ", ""));
     if (userError || !user) {
       throw new Error("Invalid user");
     }
-
     // Handle different actions
     switch (action) {
       case "proceed_with_order":
