@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Upload, ShoppingCart, CreditCard, MessageSquare, Package, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
 
 interface Inquiry {
   id: string;
@@ -41,7 +42,16 @@ export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => 
   const [productImages, setProductImages] = useState<File[]>([]);
   const [confirmedQuantity, setConfirmedQuantity] = useState(inquiry.quantity || 1);
   const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+  }, []);
 
   const handleProceedWithOrder = async () => {
     if (productImages.length === 0) {
@@ -60,7 +70,7 @@ export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => 
       const uploadedImages = [];
       for (const image of productImages) {
         const fileExt = image.name.split('.').pop();
-        const fileName = `orders/${inquiry.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const fileName = `${user?.id}/orders/${inquiry.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
           .from('samples')
@@ -148,7 +158,22 @@ export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => 
       case 'payment_completed':
         return { text: 'Payment completed', color: 'bg-green-100 text-green-800' };
       case 'order_delivered':
+      case 'delivered':
+      case 'Delivered/Completed':
+      case 'delivered/completed':
         return { text: 'Order delivered', color: 'bg-green-100 text-green-800' };
+      case 'processing':
+      case 'Processing':
+        return { text: 'Processing', color: 'bg-purple-100 text-purple-800' };
+      case 'shipped':
+      case 'Shipped':
+        return { text: 'Shipped', color: 'bg-indigo-100 text-indigo-800' };
+      case 'canceled':
+      case 'Canceled':
+        return { text: 'Canceled', color: 'bg-red-100 text-red-800' };
+      case 'refunded':
+      case 'Refunded':
+        return { text: 'Refunded', color: 'bg-gray-100 text-gray-800' };
       default:
         return { text: stage, color: 'bg-gray-100 text-gray-800' };
     }

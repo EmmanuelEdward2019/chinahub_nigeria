@@ -44,6 +44,22 @@ import NotificationSystem from "@/components/NotificationSystem";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 
+interface OrderStage {
+  id: string;
+  inquiry_id: string;
+  user_id: string;
+  stage: string;
+  quoted_amount?: number;
+  quoted_currency?: string;
+  admin_notes?: string;
+  payment_reference?: string;
+  payment_status: string;
+  product_images?: any[];
+  confirmed_quantity?: number;
+  created_at: string;
+  updated_at: string;
+}
+
 interface Inquiry {
   id: string;
   item_name: string;
@@ -97,6 +113,11 @@ const AdminDashboard = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [currentInquiriesPage, setCurrentInquiriesPage] = useState(1);
   const [totalInquiries, setTotalInquiries] = useState(0);
+  const [orderStages, setOrderStages] = useState<OrderStage[]>([]);
+  const [selectedOrderStage, setSelectedOrderStage] = useState<OrderStage | null>(null);
+  const [quotedAmount, setQuotedAmount] = useState('');
+  const [orderAdminNotes, setOrderAdminNotes] = useState('');
+  const [orderStatus, setOrderStatus] = useState('Pending');
   const inquiriesPerPage = 10;
   
   const navigate = useNavigate();
@@ -191,6 +212,36 @@ const AdminDashboard = () => {
       
       console.log('Inquiries with profiles:', inquiriesWithProfiles);
       setInquiries(inquiriesWithProfiles);
+
+      // Fetch order stages with inquiry and user details
+      const { data: orderStagesData, error: orderStagesError } = await supabase
+        .from('order_stages')
+        .select(`
+          *,
+          inquiries:inquiry_id (
+            id,
+            item_name,
+            description,
+            quantity,
+            user_id,
+            profiles:user_id (
+              full_name,
+              phone,
+              country
+            )
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (orderStagesError) {
+        console.error('Error fetching order stages:', orderStagesError);
+      } else {
+        console.log('Order stages:', orderStagesData);
+        setOrderStages(orderStagesData?.map(stage => ({
+          ...stage,
+          product_images: Array.isArray(stage.product_images) ? stage.product_images : []
+        })) || []);
+      }
 
       // Fetch other data
       const [
@@ -368,6 +419,81 @@ const AdminDashboard = () => {
     await fetchData();
   };
 
+  const handleOrderQuote = async () => {
+    if (!selectedOrderStage || !quotedAmount) {
+      toast({
+        title: "Error",
+        description: "Please enter a quoted amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.functions.invoke('process-order', {
+        body: {
+          action: 'admin_quote',
+          orderStageId: selectedOrderStage.id,
+          quotedAmount: parseFloat(quotedAmount),
+          adminNotes: orderAdminNotes
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Quote sent to user successfully",
+      });
+
+      setSelectedOrderStage(null);
+      setQuotedAmount('');
+      setOrderAdminNotes('');
+      await fetchData();
+    } catch (error) {
+      console.error('Error sending quote:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send quote",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleOrderStatusUpdate = async (orderStageId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('order_stages')
+        .update({ stage: newStatus })
+        .eq('id', orderStageId);
+
+      if (error) throw error;
+
+      if (newStatus === 'order_delivered' || newStatus === 'delivered' || newStatus === 'Delivered/Completed') {
+        await supabase.functions.invoke('process-order', {
+          body: {
+            action: 'mark_delivered',
+            orderStageId: orderStageId
+          }
+        });
+      }
+
+      toast({
+        title: "Success",
+        description: `Order status updated to ${newStatus}`,
+      });
+
+      await fetchData();
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update order status",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -498,12 +624,18 @@ const AdminDashboard = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="inquiries" className="w-full">
-          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3 gap-1 h-auto py-1' : 'grid-cols-5 gap-1'}`}>
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3 gap-1 h-auto py-1' : 'grid-cols-6 gap-1'}`}>
             <TabsTrigger 
               value="inquiries" 
               className={`${isMobile ? 'text-xs px-2 py-2' : 'text-sm'}`}
             >
               {isMobile ? 'Inquiries' : 'Inquiries'}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="orders" 
+              className={`${isMobile ? 'text-xs px-2 py-2' : 'text-sm'}`}
+            >
+              Orders
             </TabsTrigger>
             <TabsTrigger 
               value="users" 
@@ -817,7 +949,182 @@ const AdminDashboard = () => {
                  )}
                </CardContent>
              </Card>
-           </TabsContent>
+            </TabsContent>
+
+          <TabsContent value="orders" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Order Management</CardTitle>
+                <CardDescription>Manage user orders, quotes, and order status</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order ID</TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead>Quantity</TableHead>
+                      <TableHead>Stage</TableHead>
+                      <TableHead>Payment</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orderStages.map((orderStage) => (
+                      <TableRow key={orderStage.id}>
+                        <TableCell className="font-mono text-sm">
+                          {orderStage.id.slice(0, 8)}...
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {(orderStage as any).inquiries?.item_name || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {(orderStage as any).inquiries?.profiles?.full_name || 'N/A'}
+                        </TableCell>
+                        <TableCell>{orderStage.confirmed_quantity || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Badge className={
+                            orderStage.stage === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            orderStage.stage === 'processing' || orderStage.stage === 'Processing' ? 'bg-purple-100 text-purple-800' :
+                            orderStage.stage === 'shipped' || orderStage.stage === 'Shipped' ? 'bg-indigo-100 text-indigo-800' :
+                            orderStage.stage === 'delivered' || orderStage.stage === 'order_delivered' || orderStage.stage === 'Delivered/Completed' ? 'bg-green-100 text-green-800' :
+                            orderStage.stage === 'canceled' || orderStage.stage === 'Canceled' ? 'bg-red-100 text-red-800' :
+                            orderStage.stage === 'refunded' || orderStage.stage === 'Refunded' ? 'bg-gray-100 text-gray-800' :
+                            'bg-blue-100 text-blue-800'
+                          }>
+                            {orderStage.stage}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={
+                            orderStage.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
+                            orderStage.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          }>
+                            {orderStage.payment_status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{new Date(orderStage.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            {orderStage.stage === 'awaiting_admin_quote' && (
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedOrderStage(orderStage);
+                                      setQuotedAmount(orderStage.quoted_amount?.toString() || '');
+                                      setOrderAdminNotes(orderStage.admin_notes || '');
+                                    }}
+                                  >
+                                    Quote
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-auto scrollbar-black">
+                                  <DialogHeader>
+                                    <DialogTitle>Provide Quote</DialogTitle>
+                                    <DialogDescription>
+                                      Set the order amount and notes for the user
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  
+                                  {selectedOrderStage && (
+                                    <div className="space-y-4">
+                                      <div>
+                                        <strong>Product:</strong> {(selectedOrderStage as any).inquiries?.item_name}
+                                      </div>
+                                      <div>
+                                        <strong>Quantity:</strong> {selectedOrderStage.confirmed_quantity}
+                                      </div>
+                                      
+                                      <div className="space-y-2">
+                                        <Label htmlFor="quotedAmount">Quoted Amount (₦)</Label>
+                                        <Input
+                                          id="quotedAmount"
+                                          type="number"
+                                          value={quotedAmount}
+                                          onChange={(e) => setQuotedAmount(e.target.value)}
+                                          placeholder="Enter amount in Naira"
+                                        />
+                                      </div>
+                                      
+                                      <div className="space-y-2">
+                                        <Label htmlFor="orderAdminNotes">Admin Notes</Label>
+                                        <Textarea
+                                          id="orderAdminNotes"
+                                          value={orderAdminNotes}
+                                          onChange={(e) => setOrderAdminNotes(e.target.value)}
+                                          placeholder="Additional notes for the user..."
+                                          rows={3}
+                                        />
+                                      </div>
+                                      
+                                      <Button onClick={handleOrderQuote} className="w-full">
+                                        Send Quote to User
+                                      </Button>
+                                    </div>
+                                  )}
+                                </DialogContent>
+                              </Dialog>
+                            )}
+                            
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  Status
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Update Order Status</DialogTitle>
+                                  <DialogDescription>
+                                    Change the current status of this order
+                                  </DialogDescription>
+                                </DialogHeader>
+                                
+                                <div className="space-y-4">
+                                  <div>
+                                    <strong>Current Status:</strong> {orderStage.stage}
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <Label>New Status</Label>
+                                    <select 
+                                      value={orderStatus} 
+                                      onChange={(e) => setOrderStatus(e.target.value)}
+                                      className="w-full p-2 border rounded"
+                                    >
+                                      <option value="Pending">Pending</option>
+                                      <option value="Processing">Processing</option>
+                                      <option value="Shipped">Shipped</option>
+                                      <option value="Delivered/Completed">Delivered/Completed</option>
+                                      <option value="Canceled">Canceled</option>
+                                      <option value="Refunded">Refunded</option>
+                                    </select>
+                                  </div>
+                                  
+                                  <Button 
+                                    onClick={() => handleOrderStatusUpdate(orderStage.id, orderStatus)}
+                                    className="w-full"
+                                  >
+                                    Update Status
+                                  </Button>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
             <UserManagement />
