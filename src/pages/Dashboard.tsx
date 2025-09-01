@@ -14,6 +14,7 @@ import TransactionHistory from "@/components/TransactionHistory";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { OrderFlow } from "@/components/OrderFlow";
+import RecentInquiries from "@/components/RecentInquiries";
 
 interface Profile {
   id: string;
@@ -482,88 +483,20 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Inquiries</CardTitle>
-              <CardDescription>Your latest sourcing requests</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {inquiries.length > 0 ? (
-                <div className="space-y-3">
-                  {inquiries.slice(0, 3).map((inquiry) => {
-                    const orderStage = orderStages.find(os => os.inquiry_id === inquiry.id);
-                    return (
-                      <div key={inquiry.id} className="space-y-3">
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex-1">
-                             <p className="font-medium text-sm">{inquiry.item_name}</p>
-                             <p className="text-xs text-muted-foreground">
-                               {new Date(inquiry.created_at).toLocaleDateString()}
-                             </p>
-                              {inquiry.status === 'pending' && (
-                                <p className="text-xs text-blue-600 font-medium mt-1">
-                                  Awaiting admin review (3-5 days)
-                                </p>
-                              )}
-                              {inquiry.supplier_quote && inquiry.status === 'approved' && !inquiry.quote_payment_processed && !orderStage && (
-                                <Button
-                                  variant="link"
-                                  size="sm"
-                                  className="text-xs p-0 h-auto mt-1 text-green-600"
-                                  onClick={() => viewQuoteDetails(inquiry)}
-                                >
-                                  <MessageSquare className="h-3 w-3 mr-1" />
-                                  View Quote & Confirm
-                                </Button>
-                              )}
-                              {inquiry.supplier_quote && inquiry.status === 'approved' && inquiry.quote_payment_processed && (
-                                <Button
-                                  variant="link"
-                                  size="sm"
-                                  className="text-xs p-0 h-auto mt-1"
-                                  onClick={() => viewQuoteDetails(inquiry)}
-                                >
-                                  <MessageSquare className="h-3 w-3 mr-1" />
-                                  View Quote
-                                </Button>
-                              )}
-                          </div>
-                          <div className="flex flex-col items-end space-y-1">
-                            <Badge className={getStatusColor(inquiry.status)}>
-                              {inquiry.status}
-                            </Badge>
-                             {inquiry.processing_fee_naira && inquiry.status === 'approved' && (
-                               <div className="text-xs text-muted-foreground flex items-center">
-                                 <DollarSign className="h-3 w-3 mr-1" />
-                                 {formatCurrency(
-                                   currency === "NGN" ? inquiry.processing_fee_naira : (inquiry.processing_fee_dollar || 0),
-                                   currency
-                                 )}
-                                 {inquiry.quote_payment_processed && (
-                                   <span className="ml-1 text-green-600">✓ Paid</span>
-                                 )}
-                               </div>
-                             )}
-                          </div>
-                        </div>
-                        
-                        {/* Order Flow Component */}
-                        <OrderFlow 
-                          inquiry={inquiry} 
-                          orderStage={orderStage}
-                          onUpdate={() => fetchUserData(user?.id || "")}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No inquiries yet. Submit your first request!
-                </p>
-              )}
-            </CardContent>
-          </Card>
+                           <Card>
+                             <CardHeader>
+                               <CardTitle>Recent Inquiries</CardTitle>
+                               <CardDescription>Your latest sourcing requests</CardDescription>
+                             </CardHeader>
+                             <CardContent>
+                               <RecentInquiries 
+                                 userId={user?.id || ""} 
+                                 currency={currency} 
+                                 orderStages={orderStages}
+                                 onViewQuote={viewQuoteDetails}
+                               />
+                             </CardContent>
+                           </Card>
         </div>
 
         {/* Quote Details Dialog */}
