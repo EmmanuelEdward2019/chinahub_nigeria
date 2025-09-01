@@ -20,6 +20,9 @@ interface Inquiry {
   supplier_quote?: string;
   admin_feedback?: string;
   order_stage_id?: string;
+  unit_price?: number;
+  processing_fee?: number;
+  admin_pricing_currency?: string;
 }
 
 interface OrderStage {
@@ -126,6 +129,47 @@ export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => 
     }
   };
 
+  const handleOrderPayment = async () => {
+    if (!inquiry.unit_price || !inquiry.processing_fee) return;
+    
+    setIsLoading(true);
+    const totalAmount = (inquiry.unit_price * confirmedQuantity) + inquiry.processing_fee;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('process-order-payment', {
+        body: {
+          inquiryId: inquiry.id,
+          totalAmount,
+          quantity: confirmedQuantity,
+          unitPrice: inquiry.unit_price,
+          processingFee: inquiry.processing_fee
+        }
+      });
+
+      if (error) throw error;
+
+      // Open payment in new tab
+      if (data.paymentUrl) {
+        window.open(data.paymentUrl, '_blank');
+      }
+
+      toast({
+        title: "Payment Initiated",
+        description: "Complete your payment in the new window to proceed with your order.",
+      });
+
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Payment Error",
+        description: "Failed to initiate payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handlePayment = async () => {
     if (!orderStage?.quoted_amount) return;
 
@@ -188,8 +232,77 @@ export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => 
     }
   };
 
-  // Show proceed with order button for approved inquiries without order stage
-  if (inquiry.status === 'approved' && !orderStage) {
+  // Show order confirmation modal for approved inquiries with pricing
+  if (inquiry.status === 'approved' && inquiry.unit_price && inquiry.processing_fee && !orderStage) {
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button className="w-full">
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Pay & Proceed with Order
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Pay & Proceed with Order</DialogTitle>
+            <DialogDescription>
+              Confirm your order details and proceed with payment via Paystack
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Order Summary */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="font-medium text-blue-900 mb-3">Order Summary</h4>
+              <div className="space-y-2">
+                <p><strong>Product:</strong> {inquiry.item_name}</p>
+                <p><strong>Unit Price:</strong> ₦{inquiry.unit_price?.toLocaleString()}</p>
+                <div className="flex items-center gap-4">
+                  <Label htmlFor="quantity">Quantity:</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    value={confirmedQuantity}
+                    onChange={(e) => setConfirmedQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    min="1"
+                    className="w-24"
+                  />
+                </div>
+                <p><strong>Processing Fee:</strong> ₦{inquiry.processing_fee?.toLocaleString()}</p>
+                <div className="border-t pt-2 mt-3">
+                  <p className="text-lg font-bold text-blue-900">
+                    <strong>Total: ₦{((inquiry.unit_price * confirmedQuantity) + inquiry.processing_fee).toLocaleString()}</strong>
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    (₦{inquiry.unit_price?.toLocaleString()} × {confirmedQuantity}) + ₦{inquiry.processing_fee?.toLocaleString()} processing fee
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Admin Feedback Display */}
+            {inquiry.admin_feedback && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-2">Admin Feedback:</h4>
+                <p className="text-sm text-gray-700">{inquiry.admin_feedback}</p>
+              </div>
+            )}
+
+            <Button 
+              onClick={handleOrderPayment} 
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? "Processing Payment..." : `Pay ₦${((inquiry.unit_price * confirmedQuantity) + inquiry.processing_fee).toLocaleString()} & Proceed`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Show proceed with order button for approved inquiries without pricing yet
+  if (inquiry.status === 'approved' && !inquiry.unit_price && !orderStage) {
     return (
       <Dialog>
         <DialogTrigger asChild>

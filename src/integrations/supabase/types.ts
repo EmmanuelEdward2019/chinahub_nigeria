@@ -42,6 +42,7 @@ export type Database = {
         Row: {
           admin_feedback: string | null
           admin_notes: string | null
+          admin_pricing_currency: string | null
           category_id: string | null
           created_at: string
           description: string
@@ -49,6 +50,7 @@ export type Database = {
           item_name: string
           order_stage_id: string | null
           payment_status: string | null
+          processing_fee: number | null
           processing_fee_dollar: number | null
           processing_fee_naira: number | null
           quantity: number
@@ -60,12 +62,14 @@ export type Database = {
           sample_files: Json | null
           status: string
           supplier_quote: string | null
+          unit_price: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
           admin_feedback?: string | null
           admin_notes?: string | null
+          admin_pricing_currency?: string | null
           category_id?: string | null
           created_at?: string
           description: string
@@ -73,6 +77,7 @@ export type Database = {
           item_name: string
           order_stage_id?: string | null
           payment_status?: string | null
+          processing_fee?: number | null
           processing_fee_dollar?: number | null
           processing_fee_naira?: number | null
           quantity: number
@@ -84,12 +89,14 @@ export type Database = {
           sample_files?: Json | null
           status?: string
           supplier_quote?: string | null
+          unit_price?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
           admin_feedback?: string | null
           admin_notes?: string | null
+          admin_pricing_currency?: string | null
           category_id?: string | null
           created_at?: string
           description?: string
@@ -97,6 +104,7 @@ export type Database = {
           item_name?: string
           order_stage_id?: string | null
           payment_status?: string | null
+          processing_fee?: number | null
           processing_fee_dollar?: number | null
           processing_fee_naira?: number | null
           quantity?: number
@@ -108,6 +116,7 @@ export type Database = {
           sample_files?: Json | null
           status?: string
           supplier_quote?: string | null
+          unit_price?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -396,6 +405,7 @@ export type Database = {
           currency: string
           id: string
           inquiry_id: string | null
+          payment_method: string | null
           reference: string | null
           status: string
           transaction_type: string
@@ -407,6 +417,7 @@ export type Database = {
           currency: string
           id?: string
           inquiry_id?: string | null
+          payment_method?: string | null
           reference?: string | null
           status?: string
           transaction_type: string
@@ -418,6 +429,7 @@ export type Database = {
           currency?: string
           id?: string
           inquiry_id?: string | null
+          payment_method?: string | null
           reference?: string | null
           status?: string
           transaction_type?: string
