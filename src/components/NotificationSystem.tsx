@@ -9,7 +9,16 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Send, MessageSquare, User, Bell } from "lucide-react";
+import { Send, MessageSquare, User, Bell, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { 
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface Notification {
   id: string;
@@ -52,6 +61,10 @@ const NotificationSystem = ({ isAdmin, currentUserId }: { isAdmin: boolean; curr
   const [newReply, setNewReply] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalNotifications, setTotalNotifications] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const notificationsPerPage = 10;
   
   const { toast } = useToast();
 
@@ -60,22 +73,30 @@ const NotificationSystem = ({ isAdmin, currentUserId }: { isAdmin: boolean; curr
     if (isAdmin) {
       fetchUsers();
     }
-  }, [isAdmin, currentUserId]);
+  }, [isAdmin, currentUserId, currentPage, searchTerm]);
 
   const fetchNotifications = async () => {
     try {
       let query = supabase
         .from('notifications')
-        .select('*')
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
 
       if (!isAdmin) {
         query = query.eq('user_id', currentUserId);
       }
 
-      const { data, error } = await query;
+      // Apply search filter
+      if (searchTerm) {
+        query = query.or(`title.ilike.%${searchTerm}%,message.ilike.%${searchTerm}%`);
+      }
+
+      const { data, error, count } = await query
+        .range((currentPage - 1) * notificationsPerPage, currentPage * notificationsPerPage - 1);
+
       if (error) throw error;
       setNotifications((data as any) || []);
+      setTotalNotifications(count || 0);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     }
@@ -319,6 +340,17 @@ const NotificationSystem = ({ isAdmin, currentUserId }: { isAdmin: boolean; curr
             </Dialog>
           )}
         </div>
+        <div className="mt-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search notifications by title or message..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 max-w-sm"
+            />
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -356,10 +388,60 @@ const NotificationSystem = ({ isAdmin, currentUserId }: { isAdmin: boolean; curr
           
           {notifications.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              No notifications found
+              {searchTerm ? `No notifications found matching "${searchTerm}"` : "No notifications found"}
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {totalNotifications > notificationsPerPage && (
+          <div className="mt-6">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage > 1) {
+                        setCurrentPage(currentPage - 1);
+                      }
+                    }}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: Math.ceil(totalNotifications / notificationsPerPage) }, (_, i) => i + 1).map((pageNum) => (
+                  <PaginationItem key={pageNum}>
+                    <PaginationLink
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setCurrentPage(pageNum);
+                      }}
+                      isActive={currentPage === pageNum}
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage < Math.ceil(totalNotifications / notificationsPerPage)) {
+                        setCurrentPage(currentPage + 1);
+                      }
+                    }}
+                    className={currentPage === Math.ceil(totalNotifications / notificationsPerPage) ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
 
         {/* Reply Dialog */}
         <Dialog open={isReplyDialogOpen} onOpenChange={setIsReplyDialogOpen}>

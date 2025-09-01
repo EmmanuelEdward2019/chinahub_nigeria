@@ -3,7 +3,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, ArrowUpCircle, ArrowDownCircle, FileText } from "lucide-react";
+import { DollarSign, ArrowUpCircle, ArrowDownCircle, FileText, Search } from "lucide-react";
+import { 
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { Input } from "@/components/ui/input";
 
 interface Transaction {
   id: string;
@@ -26,13 +36,17 @@ const TransactionHistory = ({ userId, currency = "NGN", isAdmin = false }: Trans
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [walletBalance, setWalletBalance] = useState<{ naira: number; dollar: number }>({ naira: 0, dollar: 0 });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalTransactions, setTotalTransactions] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const transactionsPerPage = 20;
 
   useEffect(() => {
     fetchTransactions();
     if (userId) {
       fetchWalletBalance();
     }
-  }, [userId, currency]);
+  }, [userId, currency, currentPage, searchTerm]);
 
   // Realtime updates for user's transactions and wallet
   useEffect(() => {
@@ -46,13 +60,13 @@ const TransactionHistory = ({ userId, currency = "NGN", isAdmin = false }: Trans
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [userId, currency]);
+  }, [userId, currency, currentPage, searchTerm]);
 
   const fetchTransactions = async () => {
     try {
       let query = supabase
         .from('transactions')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('status', 'completed')
         .order('created_at', { ascending: false });
 
@@ -64,10 +78,17 @@ const TransactionHistory = ({ userId, currency = "NGN", isAdmin = false }: Trans
         query = query.eq('currency', currency);
       }
 
-      const { data, error } = await query.limit(20);
+      // Apply search filter
+      if (searchTerm) {
+        query = query.or(`reference.ilike.%${searchTerm}%,transaction_type.ilike.%${searchTerm}%`);
+      }
+
+      const { data, error, count } = await query
+        .range((currentPage - 1) * transactionsPerPage, currentPage * transactionsPerPage - 1);
 
       if (error) throw error;
       setTransactions(data || []);
+      setTotalTransactions(count || 0);
     } catch (error) {
       console.error('Error fetching transactions:', error);
     } finally {
@@ -195,15 +216,27 @@ const TransactionHistory = ({ userId, currency = "NGN", isAdmin = false }: Trans
             : "Your wallet transactions showing how your balance was built"
           }
         </CardDescription>
+        <div className="mt-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search transactions by reference or type..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 max-w-sm"
+            />
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         {displayTransactions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            No transactions found
+            {searchTerm ? `No transactions found matching "${searchTerm}"` : "No transactions found"}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
+          <>
+            <div className="overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Type</TableHead>
@@ -276,7 +309,58 @@ const TransactionHistory = ({ userId, currency = "NGN", isAdmin = false }: Trans
                 ))}
               </TableBody>
             </Table>
-          </div>
+            </div>
+            
+            {/* Pagination */}
+            {totalTransactions > transactionsPerPage && (
+              <div className="mt-6">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage > 1) {
+                            setCurrentPage(currentPage - 1);
+                          }
+                        }}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                    
+                    {Array.from({ length: Math.ceil(totalTransactions / transactionsPerPage) }, (_, i) => i + 1).map((pageNum) => (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(pageNum);
+                          }}
+                          isActive={currentPage === pageNum}
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage < Math.ceil(totalTransactions / transactionsPerPage)) {
+                            setCurrentPage(currentPage + 1);
+                          }
+                        }}
+                        className={currentPage === Math.ceil(totalTransactions / transactionsPerPage) ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

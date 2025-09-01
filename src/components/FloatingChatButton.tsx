@@ -10,7 +10,7 @@ const FloatingChatButton = () => {
       aria-label="Live Chat on WhatsApp"
       className="fixed bottom-4 right-4 z-50"
     >
-      <Button size="lg" className="shadow-lg">
+      <Button size="sm" className="shadow-lg">
         <MessageSquare className="h-4 w-4 mr-2" />
         Live Chat
       </Button>

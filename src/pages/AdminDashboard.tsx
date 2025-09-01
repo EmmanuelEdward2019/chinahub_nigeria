@@ -120,7 +120,12 @@ const AdminDashboard = () => {
   const [quotedAmount, setQuotedAmount] = useState('');
   const [orderAdminNotes, setOrderAdminNotes] = useState('');
   const [orderStatus, setOrderStatus] = useState('Pending');
-  const inquiriesPerPage = 10;
+  const [inquiriesPerPage] = useState(10);
+  const [ordersPerPage] = useState(10);
+  const [currentOrdersPage, setCurrentOrdersPage] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [inquirySearchTerm, setInquirySearchTerm] = useState('');
+  const [orderSearchTerm, setOrderSearchTerm] = useState('');
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -166,18 +171,24 @@ const AdminDashboard = () => {
     if (isAdmin) {
       fetchData();
     }
-  }, [currentInquiriesPage, isAdmin]);
+  }, [currentInquiriesPage, currentOrdersPage, inquirySearchTerm, orderSearchTerm, isAdmin]);
 
   const fetchData = async () => {
     try {
       console.log('Fetching admin data...');
       
-      // Fetch only PAID inquiries to ensure admins see inquiries after successful payment only
-      const inquiriesTest = await supabase
+      // Fetch all inquiries for admin review
+      let inquiriesQuery = supabase
         .from('inquiries')
         .select('*')
-        .eq('payment_status', 'paid')
         .order('created_at', { ascending: false });
+      
+      // Apply search filter if exists
+      if (inquirySearchTerm) {
+        inquiriesQuery = inquiriesQuery.or(`item_name.ilike.%${inquirySearchTerm}%,description.ilike.%${inquirySearchTerm}%`);
+      }
+      
+      const inquiriesTest = await inquiriesQuery;
       
       console.log('Basic inquiries fetch:', inquiriesTest);
       
@@ -217,7 +228,7 @@ const AdminDashboard = () => {
       setInquiries(inquiriesWithProfiles);
 
       // Fetch order stages with inquiry and user details
-      const { data: orderStagesData, error: orderStagesError } = await supabase
+      let orderStagesQuery = supabase
         .from('order_stages')
         .select(`
           *,
@@ -236,14 +247,39 @@ const AdminDashboard = () => {
         `)
         .order('created_at', { ascending: false });
 
+      // Apply search filter if exists
+      if (orderSearchTerm) {
+        // We'll filter in the frontend since we need to search nested data
+      }
+
+      const { data: orderStagesData, error: orderStagesError } = await orderStagesQuery;
+
       if (orderStagesError) {
         console.error('Error fetching order stages:', orderStagesError);
       } else {
         console.log('Order stages:', orderStagesData);
-        setOrderStages(orderStagesData?.map(stage => ({
+        let filteredOrderStages = (orderStagesData || []).map(stage => ({
           ...stage,
           product_images: Array.isArray(stage.product_images) ? stage.product_images : []
-        })) || []);
+        }));
+
+        // Apply search filter to orders
+        if (orderSearchTerm) {
+          filteredOrderStages = filteredOrderStages.filter(stage => 
+            (stage as any).inquiries?.item_name?.toLowerCase().includes(orderSearchTerm.toLowerCase()) ||
+            (stage as any).inquiries?.profiles?.full_name?.toLowerCase().includes(orderSearchTerm.toLowerCase()) ||
+            stage.id.toLowerCase().includes(orderSearchTerm.toLowerCase())
+          );
+        }
+
+        setTotalOrders(filteredOrderStages.length);
+        
+        // Apply pagination to orders
+        const startIndex = (currentOrdersPage - 1) * ordersPerPage;
+        const endIndex = startIndex + ordersPerPage;
+        const paginatedOrders = filteredOrderStages.slice(startIndex, endIndex);
+        
+        setOrderStages(paginatedOrders);
       }
 
       // Fetch other data
@@ -674,6 +710,14 @@ const AdminDashboard = () => {
               <CardHeader>
                 <CardTitle>Manage Inquiries</CardTitle>
                 <CardDescription>Review and process user inquiries</CardDescription>
+                <div className="mt-4">
+                  <Input
+                    placeholder="Search inquiries by product name or description..."
+                    value={inquirySearchTerm}
+                    onChange={(e) => setInquirySearchTerm(e.target.value)}
+                    className="max-w-sm"
+                  />
+                </div>
               </CardHeader>
               <CardContent>
                   <Table>
@@ -1062,6 +1106,14 @@ const AdminDashboard = () => {
               <CardHeader>
                 <CardTitle>Order Management</CardTitle>
                 <CardDescription>Manage user orders, quotes, and order status</CardDescription>
+                <div className="mt-4">
+                  <Input
+                    placeholder="Search orders by product name, user, or order ID..."
+                    value={orderSearchTerm}
+                    onChange={(e) => setOrderSearchTerm(e.target.value)}
+                    className="max-w-sm"
+                  />
+                </div>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -1228,6 +1280,56 @@ const AdminDashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
+                
+                {/* Orders Pagination */}
+                {totalOrders > ordersPerPage && (
+                  <div className="mt-4">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (currentOrdersPage > 1) {
+                                setCurrentOrdersPage(currentOrdersPage - 1);
+                              }
+                            }}
+                            className={currentOrdersPage === 1 ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                        
+                        {Array.from({ length: Math.ceil(totalOrders / ordersPerPage) }, (_, i) => i + 1).map((pageNum) => (
+                          <PaginationItem key={pageNum}>
+                            <PaginationLink
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setCurrentOrdersPage(pageNum);
+                              }}
+                              isActive={currentOrdersPage === pageNum}
+                            >
+                              {pageNum}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        
+                        <PaginationItem>
+                          <PaginationNext 
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (currentOrdersPage < Math.ceil(totalOrders / ordersPerPage)) {
+                                setCurrentOrdersPage(currentOrdersPage + 1);
+                              }
+                            }}
+                            className={currentOrdersPage === Math.ceil(totalOrders / ordersPerPage) ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
