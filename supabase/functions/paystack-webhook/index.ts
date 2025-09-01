@@ -234,37 +234,114 @@ serve(async (req) => {
       throw new Error('Transaction amount verification failed');
     }
 
-    // Process topup - CRITICAL FIX: Use kobo amount from transaction, not converted amount
-    await processWalletTopup(supabase, transaction, transactionAmountInKobo, currency, reference);
-    
-  // Create notifications - CRITICAL FIX: Use display amount (converted from kobo)
-  const displayAmount = Math.round(transactionAmountInKobo / 100);
-  await createNotifications(supabase, transaction.user_id, displayAmount, currency, reference);
+    // Route based on transaction type
+    if (transaction.transaction_type === 'wallet_topup') {
+      // Process topup - use kobo amount from transaction
+      await processWalletTopup(supabase, transaction, transactionAmountInKobo, currency, reference);
+      
+      // Create notifications - display amount converted from kobo
+      const displayAmount = Math.round(transactionAmountInKobo / 100);
+      await createNotifications(supabase, transaction.user_id, displayAmount, currency, reference);
 
-  // Send transaction emails
-  try {
-    const { data: wallet } = await supabase
-      .from('wallets')
-      .select('naira_balance, dollar_balance')
-      .eq('user_id', transaction.user_id)
-      .single();
+      // Send transaction emails
+      try {
+        const { data: wallet } = await supabase
+          .from('wallets')
+          .select('naira_balance, dollar_balance')
+          .eq('user_id', transaction.user_id)
+          .single();
 
-    await supabase.functions.invoke('send-transaction-email', {
-      body: {
-        type: 'topup',
-        userId: transaction.user_id,
-        amount: displayAmount,
-        currency: currency,
-        reference: reference,
-        balance: wallet || { naira_balance: 0, dollar_balance: 0 }
+        await supabase.functions.invoke('send-transaction-email', {
+          body: {
+            type: 'topup',
+            userId: transaction.user_id,
+            amount: displayAmount,
+            currency: currency,
+            reference: reference,
+            balance: wallet || { naira_balance: 0, dollar_balance: 0 }
+          }
+        });
+      } catch (emailError) {
+        console.error('Failed to send transaction emails:', emailError);
       }
-    });
-  } catch (emailError) {
-    console.error('Failed to send transaction emails:', emailError);
-  }
+    } else if (transaction.transaction_type === 'inquiry_fee') {
+      // Complete inquiry fee without crediting wallet
+      console.log('Processing inquiry fee payment...');
 
-  console.log('Webhook processing completed successfully');
-  return new Response('OK', { headers: corsHeaders });
+      const { error: updateTxnError } = await supabase
+        .from('transactions')
+        .update({ status: 'completed' })
+        .eq('id', transaction.id);
+      if (updateTxnError) {
+        console.error('Failed to update transaction status:', updateTxnError);
+        throw updateTxnError;
+      }
+
+      if (!transaction.inquiry_id) {
+        throw new Error('Missing inquiry_id for inquiry_fee transaction');
+      }
+
+      const { error: updateInquiryError } = await supabase
+        .from('inquiries')
+        .update({ payment_status: 'paid' })
+        .eq('id', transaction.inquiry_id);
+      if (updateInquiryError) {
+        console.error('Failed to update inquiry payment_status:', updateInquiryError);
+        throw updateInquiryError;
+      }
+
+      // Notify user and admin
+      try {
+        const displayAmount = Math.round(transactionAmountInKobo / 100);
+        // User notification
+        await supabase.from('notifications').insert({
+          user_id: transaction.user_id,
+          title: 'Inquiry Submitted - Payment Successful',
+          message: `Your inquiry fee payment of ₦${displayAmount.toLocaleString()} was successful. We will start processing your inquiry immediately.`,
+          type: 'success',
+          inquiry_id: transaction.inquiry_id
+        });
+
+        // Admin notification (first admin)
+        const { data: adminUser } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'admin')
+          .limit(1)
+          .maybeSingle();
+        if (adminUser) {
+          await supabase.from('notifications').insert({
+            user_id: adminUser.user_id,
+            title: 'New Inquiry Payment Received',
+            message: `A user paid the inquiry fee. Please review the inquiry and proceed. Reference: ${reference}`,
+            type: 'info',
+            inquiry_id: transaction.inquiry_id
+          });
+        }
+
+        // Optional: send transaction email
+        try {
+          await supabase.functions.invoke('send-transaction-email', {
+            body: {
+              type: 'inquiry_fee',
+              userId: transaction.user_id,
+              amount: displayAmount,
+              currency: currency,
+              reference: reference
+            }
+          });
+        } catch (emailErr) {
+          console.error('Failed to send inquiry fee email:', emailErr);
+        }
+      } catch (notifErr) {
+        console.error('Notification error:', notifErr);
+      }
+    } else {
+      console.log('Unknown transaction type, skipping processing');
+    }
+
+    console.log('Webhook processing completed successfully');
+    return new Response('OK', { headers: corsHeaders });
 
   } catch (error) {
     console.error('Webhook error:', error);

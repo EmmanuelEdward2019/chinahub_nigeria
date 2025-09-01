@@ -87,17 +87,26 @@ export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => 
         });
       }
 
-      // Create order stage
-      const { error } = await supabase.functions.invoke('process-order', {
-        body: {
-          action: 'proceed_with_order',
-          inquiryId: inquiry.id,
-          productImages: uploadedImages,
-          confirmedQuantity
-        }
-      });
+      // Create order stage directly (client-side)
+      const { data: orderStage, error: insertError } = await supabase
+        .from('order_stages')
+        .insert({
+          inquiry_id: inquiry.id,
+          user_id: user.id,
+          stage: 'awaiting_admin_quote',
+          product_images: uploadedImages,
+          confirmed_quantity: confirmedQuantity
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (insertError) throw insertError;
+
+      // Link inquiry to order stage
+      await supabase
+        .from('inquiries')
+        .update({ order_stage_id: orderStage.id })
+        .eq('id', inquiry.id);
 
       toast({
         title: "Order submitted successfully",

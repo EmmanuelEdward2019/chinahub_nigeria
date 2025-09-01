@@ -238,74 +238,73 @@ const InquiryForm = () => {
   };
 
   const handleTopUp = async () => {
-    // Check if we have pending inquiry data
-    const pendingInquiry = localStorage.getItem('pendingInquiry');
-    
-    if (pendingInquiry) {
-      // If we have pending inquiry data, we need to submit the inquiry after payment
-      // For now, let's handle the payment first and then submit the inquiry
-      const inquiryData = JSON.parse(pendingInquiry);
-      
-      try {
-        // Process payment first
-        const { data, error } = await supabase.functions.invoke('paystack-topup', {
-          body: {
-            amount: 1000, // ₦1,000
-            currency: 'NGN',
-            user_id: user?.id,
-            redirect_url: `${window.location.origin}/inquiry-success?pendingInquiry=true`
-          }
-        });
-
-        if (error) throw error;
-
-        // Redirect to Paystack checkout
-        if (data.authorization_url) {
-          window.location.href = data.authorization_url;
-        }
-      } catch (error) {
-        console.error('Error initiating payment:', error);
-        toast({
-          title: "Payment Error",
-          description: "Failed to initiate payment. Please try again.",
-          variant: "destructive",
-        });
-      }
-      return;
-    }
-    
-    // Regular top-up flow
     if (!user) return;
-    
+
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('paystack-topup', {
-        body: {
-          amount: 1000, // ₦1,000
-          currency: 'NGN',
+      // Determine required fee in base unit (kobo/cents)
+      const requiredAmount = currency === "NGN"
+        ? (inquirySettings?.default_fee_naira || 100000)
+        : (inquirySettings?.default_fee_dollar || 200);
+
+      // Upload files first
+      const uploadedFiles: Array<{ name: string; url: string; size: number }> = [];
+      for (let i = 0; i < sampleFiles.length; i++) {
+        const file = sampleFiles[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}_${i}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('samples')
+          .upload(fileName, file);
+        if (uploadError) throw uploadError;
+        uploadedFiles.push({ name: file.name, url: fileName, size: file.size });
+      }
+
+      // Create inquiry now (unpaid) so user doesn't need to re-fill later
+      const { data: inquiry, error: inquiryError } = await supabase
+        .from('inquiries')
+        .insert({
           user_id: user.id,
-          redirect_url: window.location.href
+          category_id: selectedCategory || null,
+          item_name: itemName,
+          description,
+          quantity: parseInt(quantity) || 1,
+          sample_files: uploadedFiles,
+          payment_status: 'unpaid',
+          processing_fee_naira: currency === 'NGN' ? requiredAmount : null,
+          processing_fee_dollar: currency === 'USD' ? requiredAmount : null
+        })
+        .select()
+        .single();
+
+      if (inquiryError || !inquiry) throw inquiryError || new Error('Failed to create inquiry');
+
+      // Initialize Paystack payment specifically for inquiry fee
+      const { data, error } = await supabase.functions.invoke('paystack-inquiry-fee', {
+        body: {
+          inquiry_id: inquiry.id,
+          currency
         }
       });
-
       if (error) throw error;
 
-      // Redirect to Paystack checkout
-      if (data.authorization_url) {
+      if (data?.authorization_url) {
         window.location.href = data.authorization_url;
+      } else {
+        throw new Error('Failed to get payment authorization URL');
       }
-    } catch (error) {
-      console.error('Error initiating payment:', error);
+    } catch (error: any) {
+      console.error('Error initiating inquiry payment:', error);
       toast({
-        title: "Payment Error",
-        description: "Failed to initiate payment. Please try again.",
-        variant: "destructive",
+        title: 'Payment Error',
+        description: error.message || 'Failed to initiate payment. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setSubmitting(false);
+      setShowPaymentDialog(false);
     }
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;

@@ -19,6 +19,7 @@ import SupplierMatching from "./pages/services/SupplierMatching";
 import SignupSuccess from "./pages/SignupSuccess";
 import InquirySuccess from "./pages/InquirySuccess";
 import OrderPaymentSuccess from "./pages/OrderPaymentSuccess";
+import FloatingChatButton from "./components/FloatingChatButton";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <FloatingChatButton />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
