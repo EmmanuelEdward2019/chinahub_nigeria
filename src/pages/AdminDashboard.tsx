@@ -170,10 +170,11 @@ const AdminDashboard = () => {
     try {
       console.log('Fetching admin data...');
       
-      // First test basic inquiry fetch
+      // Fetch only PAID inquiries to ensure admins see inquiries after successful payment only
       const inquiriesTest = await supabase
         .from('inquiries')
         .select('*')
+        .eq('payment_status', 'paid')
         .order('created_at', { ascending: false });
       
       console.log('Basic inquiries fetch:', inquiriesTest);
