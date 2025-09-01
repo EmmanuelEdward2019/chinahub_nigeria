@@ -336,6 +336,87 @@ serve(async (req) => {
       } catch (notifErr) {
         console.error('Notification error:', notifErr);
       }
+    } else if (transaction.transaction_type === 'order_payment') {
+      // Process order payment completion
+      console.log('Processing order payment completion...');
+      
+      const { error: updateTxnError } = await supabase
+        .from('transactions')
+        .update({ status: 'completed' })
+        .eq('id', transaction.id);
+      if (updateTxnError) {
+        console.error('Failed to update order payment transaction status:', updateTxnError);
+        throw updateTxnError;
+      }
+
+      if (!transaction.inquiry_id) {
+        throw new Error('Missing inquiry_id for order_payment transaction');
+      }
+
+      // Create order_stages record for the successful payment
+      const { data: orderStage, error: orderStageError } = await supabase
+        .from('order_stages')
+        .insert({
+          inquiry_id: transaction.inquiry_id,
+          user_id: transaction.user_id,
+          stage: 'payment_completed',
+          quoted_amount: Math.round(transactionAmountInKobo / 100), // Convert from kobo to naira
+          quoted_currency: 'NGN',
+          payment_status: 'paid',
+          payment_reference: reference
+        })
+        .select()
+        .single();
+
+      if (orderStageError) {
+        console.error('Error creating order stage:', orderStageError);
+        throw orderStageError;
+      }
+
+      // Link inquiry to order stage  
+      const { error: linkError } = await supabase
+        .from('inquiries')
+        .update({ order_stage_id: orderStage.id })
+        .eq('id', transaction.inquiry_id);
+      if (linkError) {
+        console.error('Failed to link inquiry to order stage:', linkError);
+        throw linkError;
+      }
+
+      // Notify user and admin
+      try {
+        const displayAmount = Math.round(transactionAmountInKobo / 100);
+        
+        // User notification
+        await supabase.from('notifications').insert({
+          user_id: transaction.user_id,
+          title: 'Order Payment Successful',
+          message: `Your order payment of ₦${displayAmount.toLocaleString()} was successful. We will start processing your order immediately.`,
+          type: 'success',
+          inquiry_id: transaction.inquiry_id
+        });
+
+        // Admin notification
+        const { data: adminUser } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'admin')
+          .limit(1)
+          .maybeSingle();
+        if (adminUser) {
+          await supabase.from('notifications').insert({
+            user_id: adminUser.user_id,
+            title: 'New Order Payment Received',
+            message: `Order payment received. Please process the order. Reference: ${reference}`,
+            type: 'info',
+            inquiry_id: transaction.inquiry_id
+          });
+        }
+      } catch (notifErr) {
+        console.error('Order payment notification error:', notifErr);
+      }
+      
+      console.log('Order payment processed successfully');
     } else {
       console.log('Unknown transaction type, skipping processing');
     }

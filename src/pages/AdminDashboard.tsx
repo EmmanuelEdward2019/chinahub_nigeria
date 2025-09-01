@@ -747,7 +747,7 @@ const AdminDashboard = () => {
                               {selectedInquiry && (
                                 <>
                                    <ScrollArea className="flex-1 px-6 overflow-auto scrollbar-black pr-2" style={{ height: 'calc(90vh - 200px)' }}>
-                                     <div className="space-y-6 py-6">
+                                      <div className="space-y-6 py-6">
                                        <div>
                                          <strong>Description:</strong>
                                          <p className="text-sm text-muted-foreground mt-1">{selectedInquiry.description}</p>
@@ -757,93 +757,88 @@ const AdminDashboard = () => {
                                          <strong>Quantity:</strong> {selectedInquiry.quantity}
                                        </div>
 
-                                        {selectedInquiry.sample_files && selectedInquiry.sample_files.length > 0 && (
-                                          <div>
-                                            <strong>Sample Files:</strong>
-                                            <div className="mt-2 space-y-2">
-                                              {selectedInquiry.sample_files.map((file, index) => (
-                                                <div key={index} className="flex items-center gap-2">
-                                                  <a 
-                                                    href={`https://enxrledmmhrmbxifnjbu.supabase.co/storage/v1/object/public/samples/${file.url}`}
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer"
-                                                    className="text-primary hover:underline"
-                                                  >
-                                                    {file.name}
-                                                  </a>
-                                                  <span className="text-xs text-muted-foreground">
-                                                    ({Math.round(file.size / 1024)} KB)
-                                                  </span>
-                                                </div>
-                                              ))}
+                                         {selectedInquiry.sample_files && selectedInquiry.sample_files.length > 0 && (
+                                           <div>
+                                             <strong>Sample Files:</strong>
+                                             <div className="mt-2 space-y-2">
+                                               {selectedInquiry.sample_files.map((file, index) => (
+                                                 <div key={index} className="flex items-center gap-2">
+                                                   <a 
+                                                     href={`https://enxrledmmhrmbxifnjbu.supabase.co/storage/v1/object/public/samples/${file.url}`}
+                                                     target="_blank" 
+                                                     rel="noopener noreferrer"
+                                                     className="text-primary hover:underline"
+                                                   >
+                                                     {file.name}
+                                                   </a>
+                                                   <span className="text-xs text-muted-foreground">
+                                                     ({Math.round(file.size / 1024)} KB)
+                                                   </span>
+                                                 </div>
+                                               ))}
+                                             </div>
+                                           </div>
+                                         )}
+
+                                        {/* Dynamic Pricing Section */}
+                                        <div className="bg-blue-50 p-4 rounded-lg space-y-4">
+                                          <h4 className="font-medium text-blue-900">Dynamic Pricing Setup</h4>
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                              <Label htmlFor="unitPrice">Unit Price (₦)</Label>
+                                              <Input
+                                                id="unitPrice"
+                                                type="number"
+                                                value={unitPrice}
+                                                onChange={(e) => setUnitPrice(e.target.value)}
+                                                placeholder="Price per unit"
+                                              />
+                                            </div>
+                                            <div>
+                                              <Label htmlFor="processingFee">Processing Fee (₦)</Label>
+                                              <Input
+                                                id="processingFee"
+                                                type="number"
+                                                value={processingFee}
+                                                onChange={(e) => setProcessingFee(e.target.value)}
+                                                placeholder="Fixed processing fee"
+                                              />
                                             </div>
                                           </div>
-                                        )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                                     
-                    {/* Dynamic Pricing Section */}
-                    <div className="bg-blue-50 p-4 rounded-lg space-y-4">
-                      <h4 className="font-medium text-blue-900">Dynamic Pricing Setup</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="unitPrice">Unit Price (₦)</Label>
-                          <Input
-                            id="unitPrice"
-                            type="number"
-                            value={unitPrice}
-                            onChange={(e) => setUnitPrice(e.target.value)}
-                            placeholder="Price per unit"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="processingFee">Processing Fee (₦)</Label>
-                          <Input
-                            id="processingFee"
-                            type="number"
-                            value={processingFee}
-                            onChange={(e) => setProcessingFee(e.target.value)}
-                            placeholder="Fixed processing fee"
-                          />
-                        </div>
-                      </div>
-                      {unitPrice && processingFee && selectedInquiry && (
-                        <div className="bg-white p-3 rounded border">
-                          <p className="text-sm font-medium">Total for user's quantity ({selectedInquiry.quantity} units):</p>
-                          <p className="text-lg font-bold text-blue-900">
-                            ₦{((parseInt(unitPrice) * selectedInquiry.quantity) + parseInt(processingFee)).toLocaleString()}
-                          </p>
-                          <p className="text-xs text-gray-600">
-                            (₦{parseInt(unitPrice).toLocaleString()} × {selectedInquiry.quantity}) + ₦{parseInt(processingFee).toLocaleString()} processing fee
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="supplierQuote">Supplier Quote</Label>
-                      <Textarea
-                        id="supplierQuote"
-                        value={supplierQuote}
-                        onChange={(e) => setSupplierQuote(e.target.value)}
-                        placeholder="Enter supplier quote details..."
-                        rows={3}
-                      />
-                    </div>
+                                          {unitPrice && processingFee && selectedInquiry && (
+                                            <div className="bg-white p-3 rounded border">
+                                              <p className="text-sm font-medium">Total for user's quantity ({selectedInquiry.quantity} units):</p>
+                                              <p className="text-lg font-bold text-blue-900">
+                                                ₦{((parseInt(unitPrice) * selectedInquiry.quantity) + parseInt(processingFee)).toLocaleString()}
+                                              </p>
+                                              <p className="text-xs text-gray-600">
+                                                (₦{parseInt(unitPrice).toLocaleString()} × {selectedInquiry.quantity}) + ₦{parseInt(processingFee).toLocaleString()} processing fee
+                                              </p>
+                                            </div>
+                                          )}
+                                        </div>
+                                        
+                                        <div className="space-y-2">
+                                          <Label htmlFor="supplierQuote">Supplier Quote</Label>
+                                          <Textarea
+                                            id="supplierQuote"
+                                            value={supplierQuote}
+                                            onChange={(e) => setSupplierQuote(e.target.value)}
+                                            placeholder="Enter supplier quote details..."
+                                            rows={3}
+                                          />
+                                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="adminFeedback">Admin Feedback</Label>
-                      <Textarea
-                        id="adminFeedback"
-                        value={adminFeedback}
-                        onChange={(e) => setAdminFeedback(e.target.value)}
-                        placeholder="Enter feedback for the user..."
-                        rows={3}
-                      />
-                    </div>
+                                        <div className="space-y-2">
+                                          <Label htmlFor="adminFeedback">Admin Feedback</Label>
+                                          <Textarea
+                                            id="adminFeedback"
+                                            value={adminFeedback}
+                                            onChange={(e) => setAdminFeedback(e.target.value)}
+                                            placeholder="Enter feedback for the user..."
+                                            rows={3}
+                                          />
+                                        </div>
 
                                    <div className="space-y-6">
                                      {/* Dynamic Pricing Section */}
@@ -977,7 +972,8 @@ const AdminDashboard = () => {
                                       </div>
                                     </div>
                                     </div>
-                                  </ScrollArea>
+                                        </div>
+                                     </ScrollArea>
                                   
                                   <div className="shrink-0 border-t px-6 py-4">
                                     <div className="flex flex-col sm:flex-row gap-3">
