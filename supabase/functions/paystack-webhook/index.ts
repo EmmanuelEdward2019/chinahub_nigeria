@@ -265,29 +265,44 @@ serve(async (req) => {
         console.error('Failed to send transaction emails:', emailError);
       }
     } else if (transaction.transaction_type === 'inquiry_fee') {
-      // Complete inquiry fee without crediting wallet
+      // Complete inquiry fee and create the inquiry now that payment is confirmed
       console.log('Processing inquiry fee payment...');
 
+      // Get inquiry data from Paystack metadata
+      let inquiryData;
+      try {
+        inquiryData = JSON.parse(paystackData.metadata.inquiry_data);
+      } catch (error) {
+        console.error('Failed to parse inquiry data from metadata:', error);
+        throw new Error('Invalid inquiry data in payment metadata');
+      }
+
+      // Create the inquiry now that payment is confirmed
+      const { data: newInquiry, error: inquiryError } = await supabase
+        .from('inquiries')
+        .insert({
+          ...inquiryData,
+          payment_status: 'paid'
+        })
+        .select()
+        .single();
+
+      if (inquiryError) {
+        console.error('Failed to create inquiry after payment:', inquiryError);
+        throw inquiryError;
+      }
+
+      // Update transaction with inquiry_id
       const { error: updateTxnError } = await supabase
         .from('transactions')
-        .update({ status: 'completed' })
+        .update({ 
+          status: 'completed',
+          inquiry_id: newInquiry.id
+        })
         .eq('id', transaction.id);
       if (updateTxnError) {
         console.error('Failed to update transaction status:', updateTxnError);
         throw updateTxnError;
-      }
-
-      if (!transaction.inquiry_id) {
-        throw new Error('Missing inquiry_id for inquiry_fee transaction');
-      }
-
-      const { error: updateInquiryError } = await supabase
-        .from('inquiries')
-        .update({ payment_status: 'paid' })
-        .eq('id', transaction.inquiry_id);
-      if (updateInquiryError) {
-        console.error('Failed to update inquiry payment_status:', updateInquiryError);
-        throw updateInquiryError;
       }
 
       // Notify user and admin
@@ -299,7 +314,7 @@ serve(async (req) => {
           title: 'Inquiry Submitted - Payment Successful',
           message: `Your inquiry fee payment of ₦${displayAmount.toLocaleString()} was successful. We will start processing your inquiry immediately.`,
           type: 'success',
-          inquiry_id: transaction.inquiry_id
+          inquiry_id: newInquiry.id
         });
 
         // Admin notification (first admin)
@@ -315,7 +330,7 @@ serve(async (req) => {
             title: 'New Inquiry Payment Received',
             message: `A user paid the inquiry fee. Please review the inquiry and proceed. Reference: ${reference}`,
             type: 'info',
-            inquiry_id: transaction.inquiry_id
+            inquiry_id: newInquiry.id
           });
         }
 

@@ -13,10 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const { inquiry_id, currency } = await req.json();
+    const { inquiry_data, currency } = await req.json();
 
-    if (!inquiry_id) {
-      throw new Error("inquiry_id is required");
+    if (!inquiry_data) {
+      throw new Error("inquiry_data is required");
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -29,19 +29,8 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Fetch inquiry to get user and validate existence
-    const { data: inquiry, error: inquiryError } = await supabase
-      .from("inquiries")
-      .select("id, user_id")
-      .eq("id", inquiry_id)
-      .single();
-
-    if (inquiryError || !inquiry) {
-      throw new Error("Inquiry not found");
-    }
-
-    // Get user email
-    const { data: userResult, error: userError } = await supabase.auth.admin.getUserById(inquiry.user_id);
+    // Get user email directly from inquiry_data
+    const { data: userResult, error: userError } = await supabase.auth.admin.getUserById(inquiry_data.user_id);
     if (userError || !userResult?.user?.email) {
       throw new Error("User email not found");
     }
@@ -57,13 +46,13 @@ serve(async (req) => {
       ? (settings?.default_fee_naira ?? 100000) // default ₦1000 in kobo
       : (settings?.default_fee_dollar ?? 200) * 100; // default $2 in cents
 
-    // Create a transaction record for this inquiry fee
-    const reference = `inqfee_${inquiry_id}_${Date.now()}`;
+    // Create a transaction record for this inquiry fee (without inquiry_id since inquiry doesn't exist yet)
+    const reference = `inqfee_${inquiry_data.user_id}_${Date.now()}`;
     const { data: transaction, error: txnError } = await supabase
       .from("transactions")
       .insert({
-        user_id: inquiry.user_id,
-        inquiry_id: inquiry_id,
+        user_id: inquiry_data.user_id,
+        inquiry_id: null, // Will be updated after inquiry is created
         amount: amountInKobo,
         currency: isNGN ? "NGN" : "USD",
         transaction_type: "inquiry_fee",
@@ -91,10 +80,10 @@ serve(async (req) => {
         reference,
         callback_url: `${req.headers.get("origin")}/inquiry-success`,
         metadata: {
-          user_id: inquiry.user_id,
-          inquiry_id,
+          user_id: inquiry_data.user_id,
           transaction_id: transaction.id,
           transaction_type: "inquiry_fee",
+          inquiry_data: JSON.stringify(inquiry_data), // Store inquiry data in metadata
         },
       }),
     });

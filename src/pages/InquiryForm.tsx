@@ -260,29 +260,22 @@ const InquiryForm = () => {
         uploadedFiles.push({ name: file.name, url: fileName, size: file.size });
       }
 
-      // Create inquiry now (unpaid) so user doesn't need to re-fill later
-      const { data: inquiry, error: inquiryError } = await supabase
-        .from('inquiries')
-        .insert({
-          user_id: user.id,
-          category_id: selectedCategory || null,
-          item_name: itemName,
-          description,
-          quantity: parseInt(quantity) || 1,
-          sample_files: uploadedFiles,
-          payment_status: 'unpaid',
-          processing_fee_naira: currency === 'NGN' ? requiredAmount : null,
-          processing_fee_dollar: currency === 'USD' ? requiredAmount : null
-        })
-        .select()
-        .single();
+      // Prepare inquiry data to send with payment request (DO NOT create inquiry yet)
+      const inquiryData = {
+        user_id: user.id,
+        category_id: selectedCategory || null,
+        item_name: itemName,
+        description,
+        quantity: parseInt(quantity) || 1,
+        sample_files: uploadedFiles,
+        processing_fee_naira: currency === 'NGN' ? requiredAmount : null,
+        processing_fee_dollar: currency === 'USD' ? requiredAmount : null
+      };
 
-      if (inquiryError || !inquiry) throw inquiryError || new Error('Failed to create inquiry');
-
-      // Initialize Paystack payment specifically for inquiry fee
+      // Initialize Paystack payment with inquiry data (inquiry will be created after payment confirmation)
       const { data, error } = await supabase.functions.invoke('paystack-inquiry-fee', {
         body: {
-          inquiry_id: inquiry.id,
+          inquiry_data: inquiryData,
           currency
         }
       });
