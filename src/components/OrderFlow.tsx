@@ -239,12 +239,12 @@ export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => 
         <DialogTrigger asChild>
           <Button className="w-full">
             <ShoppingCart className="h-4 w-4 mr-2" />
-            Pay & Proceed with Order
+            Pay and Process Order
           </Button>
         </DialogTrigger>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Pay & Proceed with Order</DialogTitle>
+            <DialogTitle>Pay and Process Order</DialogTitle>
             <DialogDescription>
               Confirm your order details and proceed with payment via Paystack
             </DialogDescription>
@@ -293,7 +293,7 @@ export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => 
               className="w-full"
               disabled={isLoading}
             >
-              {isLoading ? "Processing Payment..." : `Pay ₦${((inquiry.unit_price * confirmedQuantity) + inquiry.processing_fee).toLocaleString()} & Proceed`}
+              {isLoading ? "Processing Payment..." : `Pay ₦${((inquiry.unit_price * confirmedQuantity) + inquiry.processing_fee).toLocaleString()} and Process Order`}
             </Button>
           </div>
         </DialogContent>

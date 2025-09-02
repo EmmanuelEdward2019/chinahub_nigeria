@@ -36,6 +36,9 @@ interface Inquiry {
   quantity: number;
   supplier_quote?: string;
   admin_feedback?: string;
+  unit_price?: number;
+  processing_fee?: number;
+  admin_pricing_currency?: string;
   processing_fee_naira?: number;
   processing_fee_dollar?: number;
   quote_confirmed_at?: string;
@@ -130,7 +133,7 @@ const Dashboard = () => {
       // Fetch inquiries with more details
       const { data: inquiriesData } = await supabase
         .from('inquiries')
-        .select('id, item_name, description, status, created_at, supplier_quote, admin_feedback, processing_fee_naira, processing_fee_dollar, quote_confirmed_at, quote_payment_processed, order_stage_id, quantity')
+        .select('id, item_name, description, status, created_at, supplier_quote, admin_feedback, unit_price, processing_fee, admin_pricing_currency, processing_fee_naira, processing_fee_dollar, quote_confirmed_at, quote_payment_processed, order_stage_id, quantity')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(5);

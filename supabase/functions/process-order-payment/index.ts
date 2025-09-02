@@ -74,7 +74,7 @@ serve(async (req) => {
         user_id: user.id,
         inquiry_id: inquiryId,
         transaction_type: 'order_payment',
-        amount: totalAmount,
+        amount: totalAmount * 100, // store in kobo to match Paystack
         currency: 'NGN',
         status: 'pending',
         reference: paystackData.data.reference,
