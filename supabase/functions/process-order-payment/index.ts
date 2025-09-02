@@ -67,8 +67,13 @@ serve(async (req) => {
       throw new Error(paystackData.message || "Payment initialization failed");
     }
 
-    // Create pending transaction record
-    await supabaseClient
+    // Create pending transaction record using service role to bypass RLS
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    const { data: transactionData, error: transactionError } = await adminClient
       .from("transactions")
       .insert({
         user_id: user.id,
@@ -79,7 +84,16 @@ serve(async (req) => {
         status: 'pending',
         reference: paystackData.data.reference,
         payment_method: 'paystack'
-      });
+      })
+      .select()
+      .single();
+
+    if (transactionError) {
+      console.error("Error creating transaction record:", transactionError);
+      throw new Error(`Failed to create transaction: ${transactionError.message}`);
+    }
+
+    console.log("Transaction record created successfully:", transactionData);
 
     return new Response(JSON.stringify({ 
       success: true, 

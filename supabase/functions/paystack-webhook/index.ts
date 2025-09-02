@@ -204,6 +204,7 @@ serve(async (req) => {
     }
 
     // Find transaction
+    console.log(`Looking for transaction with reference: ${reference}`);
     const { data: transaction, error: transactionError } = await supabase
       .from('transactions')
       .select('*')
@@ -215,8 +216,17 @@ serve(async (req) => {
       throw new Error('Database error');
     }
 
+    console.log('Found transaction:', transaction);
+
     if (!transaction) {
       console.error('Transaction not found:', reference);
+      // Log all recent transactions for debugging
+      const { data: recentTransactions } = await supabase
+        .from('transactions')
+        .select('id, reference, created_at, transaction_type, status')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      console.log('Recent transactions:', recentTransactions);
       throw new Error('Transaction not found');
     }
 

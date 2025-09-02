@@ -126,6 +126,7 @@ const AdminDashboard = () => {
   const [totalOrders, setTotalOrders] = useState(0);
   const [inquirySearchTerm, setInquirySearchTerm] = useState('');
   const [orderSearchTerm, setOrderSearchTerm] = useState('');
+  const [isActionLoading, setIsActionLoading] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -374,9 +375,11 @@ const AdminDashboard = () => {
   };
 
   const handleInquiryAction = async (action: 'approve' | 'dismiss') => {
-    if (!selectedInquiry) return;
+    if (!selectedInquiry || isActionLoading) return;
 
-    const updates: any = {
+    setIsActionLoading(true);
+    try {
+      const updates: any = {
       status: action === 'approve' ? 'approved' : 'dismissed',
       reviewed_by: user?.id,
       reviewed_at: new Date().toISOString()
@@ -458,7 +461,19 @@ const AdminDashboard = () => {
     setSupplierQuote("");
     setAdminFeedback("");
     setFeedbackImages([]);
+    setUnitPrice('');
+    setProcessingFee('');
     await fetchData();
+    } catch (error) {
+      console.error('Error in handleInquiryAction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process inquiry action",
+        variant: "destructive",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
   const handleOrderQuote = async () => {
@@ -958,23 +973,43 @@ const AdminDashboard = () => {
                                    </ScrollArea>
                                   
                                   <div className="shrink-0 border-t px-6 py-4">
-                                    <div className="flex flex-col sm:flex-row gap-3">
-                                      <Button 
-                                        onClick={() => handleInquiryAction('approve')}
-                                        className="flex-1 min-h-[44px]"
-                                      >
-                                        <CheckCircle className="h-4 w-4 mr-2" />
-                                        Approve
-                                      </Button>
-                                      <Button 
-                                        onClick={() => handleInquiryAction('dismiss')}
-                                        variant="destructive"
-                                        className="flex-1 min-h-[44px]"
-                                      >
-                                        <XCircle className="h-4 w-4 mr-2" />
-                                        Dismiss
-                                      </Button>
-                                    </div>
+                                     <div className="flex flex-col sm:flex-row gap-3">
+                                       <Button 
+                                         onClick={() => handleInquiryAction('approve')}
+                                         className="flex-1 min-h-[44px]"
+                                         disabled={isActionLoading}
+                                       >
+                                         {isActionLoading ? (
+                                           <>
+                                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                             Processing...
+                                           </>
+                                         ) : (
+                                           <>
+                                             <CheckCircle className="h-4 w-4 mr-2" />
+                                             Approve
+                                           </>
+                                         )}
+                                       </Button>
+                                       <Button 
+                                         onClick={() => handleInquiryAction('dismiss')}
+                                         variant="destructive"
+                                         className="flex-1 min-h-[44px]"
+                                         disabled={isActionLoading}
+                                       >
+                                         {isActionLoading ? (
+                                           <>
+                                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                             Processing...
+                                           </>
+                                         ) : (
+                                           <>
+                                             <XCircle className="h-4 w-4 mr-2" />
+                                             Dismiss
+                                           </>
+                                         )}
+                                       </Button>
+                                     </div>
                                   </div>
                                 </>
                               )}
@@ -991,46 +1026,50 @@ const AdminDashboard = () => {
                    <div className="mt-4">
                      <Pagination>
                        <PaginationContent>
-                         <PaginationItem>
-                           <PaginationPrevious 
-                             href="#"
-                             onClick={(e) => {
-                               e.preventDefault();
-                               if (currentInquiriesPage > 1) {
-                                 setCurrentInquiriesPage(currentInquiriesPage - 1);
-                               }
-                             }}
-                             className={currentInquiriesPage === 1 ? "pointer-events-none opacity-50" : ""}
-                           />
-                         </PaginationItem>
+                          <PaginationItem>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (currentInquiriesPage > 1) {
+                                  setCurrentInquiriesPage(currentInquiriesPage - 1);
+                                }
+                              }}
+                              disabled={currentInquiriesPage === 1}
+                              className="h-10 px-4 py-2"
+                            >
+                              Previous
+                            </Button>
+                          </PaginationItem>
                          
-                         {Array.from({ length: Math.ceil(totalInquiries / inquiriesPerPage) }, (_, i) => i + 1).map((pageNum) => (
-                           <PaginationItem key={pageNum}>
-                             <PaginationLink
-                               href="#"
-                               onClick={(e) => {
-                                 e.preventDefault();
-                                 setCurrentInquiriesPage(pageNum);
-                               }}
-                               isActive={currentInquiriesPage === pageNum}
-                             >
-                               {pageNum}
-                             </PaginationLink>
-                           </PaginationItem>
-                         ))}
+                          {Array.from({ length: Math.ceil(totalInquiries / inquiriesPerPage) }, (_, i) => i + 1).map((pageNum) => (
+                            <PaginationItem key={pageNum}>
+                              <Button
+                                variant={currentInquiriesPage === pageNum ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setCurrentInquiriesPage(pageNum)}
+                                className="h-10 w-10"
+                              >
+                                {pageNum}
+                              </Button>
+                            </PaginationItem>
+                          ))}
                          
-                         <PaginationItem>
-                           <PaginationNext 
-                             href="#"
-                             onClick={(e) => {
-                               e.preventDefault();
-                               if (currentInquiriesPage < Math.ceil(totalInquiries / inquiriesPerPage)) {
-                                 setCurrentInquiriesPage(currentInquiriesPage + 1);
-                               }
-                             }}
-                             className={currentInquiriesPage === Math.ceil(totalInquiries / inquiriesPerPage) ? "pointer-events-none opacity-50" : ""}
-                           />
-                         </PaginationItem>
+                          <PaginationItem>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (currentInquiriesPage < Math.ceil(totalInquiries / inquiriesPerPage)) {
+                                  setCurrentInquiriesPage(currentInquiriesPage + 1);
+                                }
+                              }}
+                              disabled={currentInquiriesPage === Math.ceil(totalInquiries / inquiriesPerPage)}
+                              className="h-10 px-4 py-2"
+                            >
+                              Next
+                            </Button>
+                          </PaginationItem>
                        </PaginationContent>
                      </Pagination>
                    </div>
@@ -1224,46 +1263,50 @@ const AdminDashboard = () => {
                   <div className="mt-4">
                     <Pagination>
                       <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious 
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              if (currentOrdersPage > 1) {
-                                setCurrentOrdersPage(currentOrdersPage - 1);
-                              }
-                            }}
-                            className={currentOrdersPage === 1 ? "pointer-events-none opacity-50" : ""}
-                          />
-                        </PaginationItem>
+                         <PaginationItem>
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={() => {
+                               if (currentOrdersPage > 1) {
+                                 setCurrentOrdersPage(currentOrdersPage - 1);
+                               }
+                             }}
+                             disabled={currentOrdersPage === 1}
+                             className="h-10 px-4 py-2"
+                           >
+                             Previous
+                           </Button>
+                         </PaginationItem>
                         
-                        {Array.from({ length: Math.ceil(totalOrders / ordersPerPage) }, (_, i) => i + 1).map((pageNum) => (
-                          <PaginationItem key={pageNum}>
-                            <PaginationLink
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setCurrentOrdersPage(pageNum);
-                              }}
-                              isActive={currentOrdersPage === pageNum}
-                            >
-                              {pageNum}
-                            </PaginationLink>
-                          </PaginationItem>
-                        ))}
+                         {Array.from({ length: Math.ceil(totalOrders / ordersPerPage) }, (_, i) => i + 1).map((pageNum) => (
+                           <PaginationItem key={pageNum}>
+                             <Button
+                               variant={currentOrdersPage === pageNum ? "default" : "outline"}
+                               size="sm"
+                               onClick={() => setCurrentOrdersPage(pageNum)}
+                               className="h-10 w-10"
+                             >
+                               {pageNum}
+                             </Button>
+                           </PaginationItem>
+                         ))}
                         
-                        <PaginationItem>
-                          <PaginationNext 
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              if (currentOrdersPage < Math.ceil(totalOrders / ordersPerPage)) {
-                                setCurrentOrdersPage(currentOrdersPage + 1);
-                              }
-                            }}
-                            className={currentOrdersPage === Math.ceil(totalOrders / ordersPerPage) ? "pointer-events-none opacity-50" : ""}
-                          />
-                        </PaginationItem>
+                         <PaginationItem>
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={() => {
+                               if (currentOrdersPage < Math.ceil(totalOrders / ordersPerPage)) {
+                                 setCurrentOrdersPage(currentOrdersPage + 1);
+                               }
+                             }}
+                             disabled={currentOrdersPage === Math.ceil(totalOrders / ordersPerPage)}
+                             className="h-10 px-4 py-2"
+                           >
+                             Next
+                           </Button>
+                         </PaginationItem>
                       </PaginationContent>
                     </Pagination>
                   </div>
