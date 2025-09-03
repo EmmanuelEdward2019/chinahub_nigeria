@@ -364,7 +364,8 @@ serve(async (req) => {
     } else if (transaction.transaction_type === 'order_payment') {
       // Process order payment completion
       console.log('Processing order payment completion...');
-      
+
+      // Mark transaction as completed
       const { error: updateTxnError } = await supabase
         .from('transactions')
         .update({ status: 'completed' })
@@ -375,43 +376,84 @@ serve(async (req) => {
       }
 
       if (!transaction.inquiry_id) {
-        throw new Error('Missing inquiry_id for order_payment transaction');
+        console.warn('Missing inquiry_id for order_payment transaction; attempting to read from metadata');
       }
 
-      // Create order_stages record for the successful payment
-      const { data: orderStage, error: orderStageError } = await supabase
+      // Try to find an existing order stage created during checkout flow
+      let existingOrderStage = null as any;
+      const { data: orderStageByRef, error: orderStageByRefError } = await supabase
         .from('order_stages')
-        .insert({
-          inquiry_id: transaction.inquiry_id,
-          user_id: transaction.user_id,
-          stage: 'payment_completed',
-          quoted_amount: Math.round(transactionAmountInKobo / 100), // Convert from kobo to naira
-          quoted_currency: 'NGN',
-          payment_status: 'paid',
-          payment_reference: reference
-        })
-        .select()
-        .single();
-
-      if (orderStageError) {
-        console.error('Error creating order stage:', orderStageError);
-        throw orderStageError;
+        .select('*')
+        .eq('payment_reference', reference)
+        .maybeSingle();
+      if (orderStageByRefError) {
+        console.error('Error looking up order stage by reference:', orderStageByRefError);
       }
+      existingOrderStage = orderStageByRef;
 
-      // Link inquiry to order stage  
-      const { error: linkError } = await supabase
-        .from('inquiries')
-        .update({ order_stage_id: orderStage.id })
-        .eq('id', transaction.inquiry_id);
-      if (linkError) {
-        console.error('Failed to link inquiry to order stage:', linkError);
-        throw linkError;
+      if (existingOrderStage) {
+        console.log('Found existing order stage by payment reference. Updating to payment_completed...');
+        const { error: updateStageError } = await supabase
+          .from('order_stages')
+          .update({
+            stage: 'payment_completed',
+            payment_status: 'paid',
+            payment_reference: reference
+          })
+          .eq('id', existingOrderStage.id);
+        if (updateStageError) {
+          console.error('Failed to update existing order stage:', updateStageError);
+          throw updateStageError;
+        }
+
+        // Ensure inquiry links to this order stage
+        if (transaction.inquiry_id) {
+          const { error: linkError } = await supabase
+            .from('inquiries')
+            .update({ order_stage_id: existingOrderStage.id })
+            .eq('id', transaction.inquiry_id);
+          if (linkError) {
+            console.error('Failed to link inquiry to existing order stage:', linkError);
+          }
+        }
+      } else {
+        console.log('No existing order stage found; creating a new one...');
+        const { data: orderStage, error: orderStageError } = await supabase
+          .from('order_stages')
+          .insert({
+            inquiry_id: transaction.inquiry_id,
+            user_id: transaction.user_id,
+            stage: 'payment_completed',
+            quoted_amount: Math.round(transactionAmountInKobo / 100), // Convert from kobo to naira
+            quoted_currency: 'NGN',
+            payment_status: 'paid',
+            payment_reference: reference
+          })
+          .select()
+          .single();
+
+        if (orderStageError) {
+          console.error('Error creating order stage:', orderStageError);
+          throw orderStageError;
+        }
+
+        // Link inquiry to order stage
+        if (transaction.inquiry_id) {
+          const { error: linkError } = await supabase
+            .from('inquiries')
+            .update({ order_stage_id: orderStage.id })
+            .eq('id', transaction.inquiry_id);
+          if (linkError) {
+            console.error('Failed to link inquiry to order stage:', linkError);
+            throw linkError;
+          }
+        }
       }
 
       // Notify user and admin
       try {
         const displayAmount = Math.round(transactionAmountInKobo / 100);
-        
+
         // User notification
         await supabase.from('notifications').insert({
           user_id: transaction.user_id,
@@ -440,7 +482,7 @@ serve(async (req) => {
       } catch (notifErr) {
         console.error('Order payment notification error:', notifErr);
       }
-      
+
       console.log('Order payment processed successfully');
     } else {
       console.log('Unknown transaction type, skipping processing');

@@ -14,6 +14,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface Transaction {
   id: string;
@@ -317,44 +318,44 @@ const TransactionHistory = ({ userId, currency = "NGN", isAdmin = false }: Trans
                 <Pagination>
                   <PaginationContent>
                     <PaginationItem>
-                      <PaginationPrevious 
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          if (currentPage > 1) {
-                            setCurrentPage(currentPage - 1);
-                          }
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (currentPage > 1) setCurrentPage(currentPage - 1);
                         }}
-                        className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-                      />
+                        disabled={currentPage === 1}
+                        className="h-10 px-4 py-2"
+                      >
+                        Previous
+                      </Button>
                     </PaginationItem>
                     
                     {Array.from({ length: Math.ceil(totalTransactions / transactionsPerPage) }, (_, i) => i + 1).map((pageNum) => (
                       <PaginationItem key={pageNum}>
-                        <PaginationLink
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setCurrentPage(pageNum);
-                          }}
-                          isActive={currentPage === pageNum}
+                        <Button
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="h-10 w-10"
                         >
                           {pageNum}
-                        </PaginationLink>
+                        </Button>
                       </PaginationItem>
                     ))}
                     
                     <PaginationItem>
-                      <PaginationNext 
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          if (currentPage < Math.ceil(totalTransactions / transactionsPerPage)) {
-                            setCurrentPage(currentPage + 1);
-                          }
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (currentPage < Math.ceil(totalTransactions / transactionsPerPage)) setCurrentPage(currentPage + 1);
                         }}
-                        className={currentPage === Math.ceil(totalTransactions / transactionsPerPage) ? "pointer-events-none opacity-50" : ""}
-                      />
+                        disabled={currentPage === Math.ceil(totalTransactions / transactionsPerPage)}
+                        className="h-10 px-4 py-2"
+                      >
+                        Next
+                      </Button>
                     </PaginationItem>
                   </PaginationContent>
                 </Pagination>

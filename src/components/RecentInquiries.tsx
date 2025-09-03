@@ -222,44 +222,44 @@ const RecentInquiries = ({ userId, currency, orderStages, onViewQuote }: RecentI
                 <Pagination>
                   <PaginationContent>
                     <PaginationItem>
-                      <PaginationPrevious 
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          if (currentPage > 1) {
-                            setCurrentPage(currentPage - 1);
-                          }
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (currentPage > 1) setCurrentPage(currentPage - 1);
                         }}
-                        className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-                      />
+                        disabled={currentPage === 1}
+                        className="h-10 px-4 py-2"
+                      >
+                        Previous
+                      </Button>
                     </PaginationItem>
-                    
+
                     {Array.from({ length: Math.ceil(totalInquiries / inquiriesPerPage) }, (_, i) => i + 1).map((pageNum) => (
                       <PaginationItem key={pageNum}>
-                        <PaginationLink
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setCurrentPage(pageNum);
-                          }}
-                          isActive={currentPage === pageNum}
+                        <Button
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="h-10 w-10"
                         >
                           {pageNum}
-                        </PaginationLink>
+                        </Button>
                       </PaginationItem>
                     ))}
-                    
+
                     <PaginationItem>
-                      <PaginationNext 
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          if (currentPage < Math.ceil(totalInquiries / inquiriesPerPage)) {
-                            setCurrentPage(currentPage + 1);
-                          }
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (currentPage < Math.ceil(totalInquiries / inquiriesPerPage)) setCurrentPage(currentPage + 1);
                         }}
-                        className={currentPage === Math.ceil(totalInquiries / inquiriesPerPage) ? "pointer-events-none opacity-50" : ""}
-                      />
+                        disabled={currentPage === Math.ceil(totalInquiries / inquiriesPerPage)}
+                        className="h-10 px-4 py-2"
+                      >
+                        Next
+                      </Button>
                     </PaginationItem>
                   </PaginationContent>
                 </Pagination>

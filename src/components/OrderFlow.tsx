@@ -242,7 +242,7 @@ export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => 
             Pay and Process Order
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-auto">
           <DialogHeader>
             <DialogTitle>Pay and Process Order</DialogTitle>
             <DialogDescription>

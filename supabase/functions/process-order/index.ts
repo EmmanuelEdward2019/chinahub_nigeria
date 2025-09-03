@@ -126,7 +126,8 @@ serve(async (req) => {
             metadata: {
               order_stage_id: orderStageId,
               user_id: user.id,
-              inquiry_id: inquiryId
+              inquiry_id: inquiryId,
+              payment_type: 'order_payment'
             }
           }),
         });
@@ -141,9 +142,35 @@ serve(async (req) => {
         await supabaseClient
           .from("order_stages")
           .update({
-            payment_reference: paystackData.data.reference
+            payment_reference: paystackData.data.reference,
+            payment_status: 'pending',
+            stage: 'pending_payment'
           })
           .eq("id", orderStageId);
+
+        // Create pending transaction record using service role to bypass RLS
+        const adminClient = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+        );
+
+        const { error: txnError } = await adminClient
+          .from("transactions")
+          .insert({
+            user_id: user.id,
+            inquiry_id: inquiryId,
+            transaction_type: 'order_payment',
+            amount: quotedAmount * 100, // store in kobo to match Paystack
+            currency: 'NGN',
+            status: 'pending',
+            reference: paystackData.data.reference,
+            payment_method: 'paystack'
+          });
+
+        if (txnError) {
+          console.error("Failed to create pending transaction for order:", txnError);
+          // Do not throw - payment has been initialized; webhook can still process using order_stage_id
+        }
 
         return new Response(JSON.stringify({ 
           success: true, 
