@@ -157,10 +157,10 @@ const RecentInquiries = ({ userId, currency, orderStages, onViewQuote }: RecentI
               {inquiries.map((inquiry) => {
                 const orderStage = orderStages.find(os => os.inquiry_id === inquiry.id);
                 return (
-                  <div key={inquiry.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div key={inquiry.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border rounded-lg">
                     <div className="flex-1">
                       <p className="font-medium text-sm">{inquiry.item_name}</p>
-                      <p className="text-xs text-muted-foreground truncate max-w-md">
+                      <p className="text-xs text-muted-foreground break-words sm:truncate sm:max-w-md">
                         {inquiry.description}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -194,12 +194,12 @@ const RecentInquiries = ({ userId, currency, orderStages, onViewQuote }: RecentI
                         </Button>
                       )}
                     </div>
-                    <div className="flex flex-col items-end space-y-1">
-                      <Badge className={getStatusColor(inquiry.status)}>
+                    <div className="flex flex-col items-start sm:items-end space-y-1 w-full sm:w-auto">
+                      <Badge className={`${getStatusColor(inquiry.status)} text-xs px-2 py-1 self-start sm:self-auto`}>
                         {inquiry.status}
                       </Badge>
                       {inquiry.processing_fee_naira && inquiry.status === 'approved' && (
-                        <div className="text-xs text-muted-foreground flex items-center">
+                        <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-1">
                           <DollarSign className="h-3 w-3 mr-1" />
                           {formatCurrency(
                             currency === "NGN" ? inquiry.processing_fee_naira : (inquiry.processing_fee_dollar || 0),
@@ -218,52 +218,54 @@ const RecentInquiries = ({ userId, currency, orderStages, onViewQuote }: RecentI
             
             {/* Pagination */}
             {totalInquiries > inquiriesPerPage && (
-              <div className="mt-6">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (currentPage > 1) setCurrentPage(currentPage - 1);
-                        }}
-                        disabled={currentPage === 1}
-                        className="h-10 px-4 py-2"
-                      >
-                        Previous
-                      </Button>
-                    </PaginationItem>
+                <div className="mt-6">
+                  <div className="overflow-x-auto">
+                    <Pagination>
+                      <PaginationContent className="whitespace-nowrap">
+                        <PaginationItem>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (currentPage > 1) setCurrentPage(currentPage - 1);
+                            }}
+                            disabled={currentPage === 1}
+                            className="h-10 px-4 py-2"
+                          >
+                            Previous
+                          </Button>
+                        </PaginationItem>
 
-                    {Array.from({ length: Math.ceil(totalInquiries / inquiriesPerPage) }, (_, i) => i + 1).map((pageNum) => (
-                      <PaginationItem key={pageNum}>
-                        <Button
-                          variant={currentPage === pageNum ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(pageNum)}
-                          className="h-10 w-10"
-                        >
-                          {pageNum}
-                        </Button>
-                      </PaginationItem>
-                    ))}
+                        {Array.from({ length: Math.ceil(totalInquiries / inquiriesPerPage) }, (_, i) => i + 1).map((pageNum) => (
+                          <PaginationItem key={pageNum}>
+                            <Button
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setCurrentPage(pageNum)}
+                              className="h-10 w-10"
+                            >
+                              {pageNum}
+                            </Button>
+                          </PaginationItem>
+                        ))}
 
-                    <PaginationItem>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (currentPage < Math.ceil(totalInquiries / inquiriesPerPage)) setCurrentPage(currentPage + 1);
-                        }}
-                        disabled={currentPage === Math.ceil(totalInquiries / inquiriesPerPage)}
-                        className="h-10 px-4 py-2"
-                      >
-                        Next
-                      </Button>
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
+                        <PaginationItem>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (currentPage < Math.ceil(totalInquiries / inquiriesPerPage)) setCurrentPage(currentPage + 1);
+                            }}
+                            disabled={currentPage === Math.ceil(totalInquiries / inquiriesPerPage)}
+                            className="h-10 px-4 py-2"
+                          >
+                            Next
+                          </Button>
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                </div>
             )}
           </>
         )}

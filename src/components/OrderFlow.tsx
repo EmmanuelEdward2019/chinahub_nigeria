@@ -257,7 +257,7 @@ export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => 
               <div className="space-y-2">
                 <p><strong>Product:</strong> {inquiry.item_name}</p>
                 <p><strong>Unit Price:</strong> ₦{inquiry.unit_price?.toLocaleString()}</p>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
                   <Label htmlFor="quantity">Quantity:</Label>
                   <Input
                     id="quantity"
