@@ -43,10 +43,16 @@ interface OrderFlowProps {
 
 export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => {
   const [productImages, setProductImages] = useState<File[]>([]);
-  const [confirmedQuantity, setConfirmedQuantity] = useState(inquiry.quantity || 1);
+  const [confirmedQuantity, setConfirmedQuantity] = useState<number | string>(inquiry.quantity || 1);
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const { toast } = useToast();
+
+  // Helper function to get numeric quantity
+  const getNumericQuantity = () => {
+    const qty = typeof confirmedQuantity === 'string' ? parseInt(confirmedQuantity) : confirmedQuantity;
+    return isNaN(qty) || qty < 1 ? 1 : qty;
+  };
 
   useEffect(() => {
     const getUser = async () => {
@@ -98,7 +104,7 @@ export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => 
           user_id: user.id,
           stage: 'awaiting_admin_quote',
           product_images: uploadedImages,
-          confirmed_quantity: confirmedQuantity
+          confirmed_quantity: getNumericQuantity()
         })
         .select()
         .single();
@@ -133,14 +139,14 @@ export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => 
     if (!inquiry.unit_price || !inquiry.processing_fee) return;
     
     setIsLoading(true);
-    const totalAmount = (inquiry.unit_price * confirmedQuantity) + inquiry.processing_fee;
+    const totalAmount = (inquiry.unit_price * getNumericQuantity()) + inquiry.processing_fee;
 
     try {
       const { data, error } = await supabase.functions.invoke('process-order-payment', {
         body: {
           inquiryId: inquiry.id,
           totalAmount,
-          quantity: confirmedQuantity,
+          quantity: getNumericQuantity(),
           unitPrice: inquiry.unit_price,
           processingFee: inquiry.processing_fee
         }
@@ -263,7 +269,22 @@ export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => 
                     id="quantity"
                     type="number"
                     value={confirmedQuantity}
-                    onChange={(e) => setConfirmedQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '') {
+                        setConfirmedQuantity('');
+                      } else {
+                        const numValue = parseInt(value);
+                        if (!isNaN(numValue) && numValue >= 1) {
+                          setConfirmedQuantity(numValue);
+                        }
+                      }
+                    }}
+                    onBlur={() => {
+                      if (confirmedQuantity === '' || getNumericQuantity() < 1) {
+                        setConfirmedQuantity(1);
+                      }
+                    }}
                     min="1"
                     className="w-24"
                   />
@@ -271,10 +292,10 @@ export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => 
                 <p><strong>Processing Fee:</strong> ₦{inquiry.processing_fee?.toLocaleString()}</p>
                 <div className="border-t pt-2 mt-3">
                   <p className="text-lg font-bold text-blue-900">
-                    <strong>Total: ₦{((inquiry.unit_price * confirmedQuantity) + inquiry.processing_fee).toLocaleString()}</strong>
+                    <strong>Total: ₦{((inquiry.unit_price * getNumericQuantity()) + inquiry.processing_fee).toLocaleString()}</strong>
                   </p>
                   <p className="text-xs text-gray-600">
-                    (₦{inquiry.unit_price?.toLocaleString()} × {confirmedQuantity}) + ₦{inquiry.processing_fee?.toLocaleString()} processing fee
+                    (₦{inquiry.unit_price?.toLocaleString()} × {getNumericQuantity()}) + ₦{inquiry.processing_fee?.toLocaleString()} processing fee
                   </p>
                 </div>
               </div>
@@ -293,7 +314,7 @@ export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => 
               className="w-full"
               disabled={isLoading}
             >
-              {isLoading ? "Processing Payment..." : `Pay ₦${((inquiry.unit_price * confirmedQuantity) + inquiry.processing_fee).toLocaleString()} and Process Order`}
+              {isLoading ? "Processing Payment..." : `Pay ₦${((inquiry.unit_price * getNumericQuantity()) + inquiry.processing_fee).toLocaleString()} and Process Order`}
             </Button>
           </div>
         </DialogContent>
@@ -331,7 +352,22 @@ export const OrderFlow = ({ inquiry, orderStage, onUpdate }: OrderFlowProps) => 
                 id="quantity"
                 type="number"
                 value={confirmedQuantity}
-                onChange={(e) => setConfirmedQuantity(parseInt(e.target.value))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    setConfirmedQuantity('');
+                  } else {
+                    const numValue = parseInt(value);
+                    if (!isNaN(numValue) && numValue >= 1) {
+                      setConfirmedQuantity(numValue);
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  if (confirmedQuantity === '' || getNumericQuantity() < 1) {
+                    setConfirmedQuantity(1);
+                  }
+                }}
                 min="1"
               />
             </div>
