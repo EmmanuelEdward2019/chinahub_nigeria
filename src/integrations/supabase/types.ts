@@ -511,14 +511,8 @@ export type Database = {
         Args: { amount: number; currency: string; user_id: string }
         Returns: undefined
       }
-      fix_all_wallet_balances: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      fix_stuck_pending_transactions: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      fix_all_wallet_balances: { Args: never; Returns: Json }
+      fix_stuck_pending_transactions: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -535,10 +529,7 @@ export type Database = {
         }
         Returns: Json
       }
-      setup_admin_user: {
-        Args: { admin_email: string }
-        Returns: undefined
-      }
+      setup_admin_user: { Args: { admin_email: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "user"
