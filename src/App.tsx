@@ -20,6 +20,7 @@ import SignupSuccess from "./pages/SignupSuccess";
 import InquirySuccess from "./pages/InquirySuccess";
 import OrderPaymentSuccess from "./pages/OrderPaymentSuccess";
 import FloatingChatButton from "./components/FloatingChatButton";
+import CategoryBrowse from "./pages/CategoryBrowse";
 
 const queryClient = new QueryClient();
 
