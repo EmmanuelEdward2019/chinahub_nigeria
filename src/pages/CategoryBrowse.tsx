@@ -182,7 +182,7 @@ const CategoryBrowse = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
+      <Navigation user={user} />
 
       {/* Banner */}
       <section className="relative h-56 sm:h-64 overflow-hidden">
