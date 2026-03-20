@@ -167,7 +167,7 @@ const CategoryBrowse = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navigation />
+        <Navigation user={user} />
         <div className="pt-24 pb-16 px-4 max-w-7xl mx-auto">
           <div className="h-48 rounded-2xl bg-muted animate-pulse mb-12" />
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
