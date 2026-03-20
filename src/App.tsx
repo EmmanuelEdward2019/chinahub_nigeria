@@ -20,6 +20,7 @@ import SignupSuccess from "./pages/SignupSuccess";
 import InquirySuccess from "./pages/InquirySuccess";
 import OrderPaymentSuccess from "./pages/OrderPaymentSuccess";
 import FloatingChatButton from "./components/FloatingChatButton";
+import CategoryBrowse from "./pages/CategoryBrowse";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/admin-auth" element={<AdminAuth />} />
           <Route path="/admin_2025store" element={<AdminDashboard />} />
           <Route path="/inquiry" element={<InquiryForm />} />
+          <Route path="/category/:id" element={<CategoryBrowse />} />
           <Route path="/about" element={<About />} />
           <Route path="/news" element={<News />} />
           <Route path="/contact" element={<Contact />} />
