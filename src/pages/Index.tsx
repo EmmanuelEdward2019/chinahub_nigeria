@@ -158,7 +158,7 @@ const Index = () => {
                   return (
                     <RevealSection key={cat.id} delay={i * 70}>
                       <button
-                        onClick={() => (user ? navigate(`/inquiry?category=${cat.id}`) : navigate("/auth"))}
+                        onClick={() => navigate(`/category/${cat.id}`)}
                         className="w-full group relative overflow-hidden rounded-xl border border-border bg-card p-6 text-left hover:shadow-lg hover:shadow-primary/5 transition-shadow active:scale-[0.97]"
                       >
                         <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">

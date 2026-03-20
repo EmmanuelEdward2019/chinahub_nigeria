@@ -37,6 +37,7 @@ const App = () => (
           <Route path="/admin-auth" element={<AdminAuth />} />
           <Route path="/admin_2025store" element={<AdminDashboard />} />
           <Route path="/inquiry" element={<InquiryForm />} />
+          <Route path="/category/:id" element={<CategoryBrowse />} />
           <Route path="/about" element={<About />} />
           <Route path="/news" element={<News />} />
           <Route path="/contact" element={<Contact />} />
