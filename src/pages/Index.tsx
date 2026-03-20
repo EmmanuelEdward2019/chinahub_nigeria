@@ -116,7 +116,7 @@ const Index = () => {
           </div>
 
           {/* right — floating product collage */}
-          <div className="hidden lg:block reveal-up reveal-delay-2">
+          <div className="hidden lg:block reveal-up reveal-delay-2 max-w-sm xl:max-w-md">
             <div className="relative">
               <img
                 src={productsCollage}
