@@ -141,6 +141,12 @@ const CategoryBrowse = () => {
   const [categoryIcon, setCategoryIcon] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+  }, []);
+
   useEffect(() => {
     const fetchCategory = async () => {
       if (!id) return;
