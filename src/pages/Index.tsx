@@ -101,7 +101,7 @@ const Index = () => {
                 size="lg"
                 variant="outline"
                 onClick={() => navigate("/about")}
-                className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+                className="border-foreground/30 text-foreground hover:bg-foreground/10"
               >
                 How It Works
               </Button>
