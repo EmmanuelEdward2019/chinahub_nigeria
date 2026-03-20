@@ -121,3 +121,27 @@ All colors MUST be HSL.
   background: hsl(var(--foreground));
   border-radius: 9999px;
 }
+
+/* Scroll reveal animations */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.reveal-up {
+  animation: reveal-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.reveal-delay-1 { animation-delay: 80ms; }
+.reveal-delay-2 { animation-delay: 160ms; }
+.reveal-delay-3 { animation-delay: 240ms; }
+.reveal-delay-4 { animation-delay: 320ms; }
+.reveal-delay-5 { animation-delay: 400ms; }
